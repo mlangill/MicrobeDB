@@ -1,0 +1,29 @@
+1)Create or confirm your MySQL login config file ~/.my.cnf
+a)
+emacs $HOME/.my.cnf
+  [client]
+  host=localhost
+  user=real_user_name
+  password=real_password
+
+b)Protect your config file
+chmod 600 $HOME/.my.cnf
+
+2)Create the microbedb database
+mysql -e "CREATE DATABASE microbedb"
+
+3)Load the microbedb table structures
+mysql microbedb < microbedb_struct.sql
+
+---if you have files from BioTorrents---
+4)load the data into the mysql database
+mysql -p microbedb <NCBI_Microbial_genomes_Parsed.sql  
+
+--OR--
+
+4)Get the genome files from genbank via ftp and parse files into mysql (this can take awhile time)
+./scripts/download_load_and_delete_old_version.pl
+
+4b)If the download completes but there are errors in the parsing stage, then "run_update.pl <download_dir>" can be used to just redo the parsing part.
+
+5)Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as other perl modules or by adding the path to MicrobeDB to your $PERL5LIB environment variable
