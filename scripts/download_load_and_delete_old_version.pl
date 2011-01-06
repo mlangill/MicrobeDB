@@ -21,12 +21,14 @@ print "Running script download_load_delete_old_version.pl\n";
 print "Downloading all genomes from NCBI.(this takes a awhile, ~2-4hours)\n";
 
 #Download all genomes from NCBI
-my $download_dir = `./download_version.pl $download_parent_dir`;
+my $download_dir_plus_crap = `./download_version.pl $download_parent_dir`;
+my @crap = split(/\n/,$download_dir_plus_crap);
+my $download_dir=$crap[-1];
 chomp($download_dir);
 
 print "Finished downloading genomes from NCBI.\n\n";
 
-die "The download directory does not exist: $download_dir\nSomething wrong with ftp download?\n" unless -d $download_dir;
+die "The download directory does not exist: $download_dir\nSomething wrong with download?\n" unless -d $download_dir;
 
 #unpack genome files
 print "Unpacking genome files\n\n";
