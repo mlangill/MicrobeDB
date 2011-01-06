@@ -1,11 +1,13 @@
 #!/usr/bin/perl
-#This script is run monthly and keeps microbedb up to date
-#1) All genomes are downloaded from NCBI using wget (download_version.pl)
-#2) All genomes are parsed and loaded into microbedb (load_version.pl)
+#This is the main script for installing/updating MicrobeDB
+#It acts as a wrapper to run 3 other scripts automatically (these can be run manually if you choose)
+#1) All genomes are downloaded from NCBI using Aspera (default) or FTP (download_version.pl)
+#2) Downloaded genomes are then extracted (unpack_version.pl)
+#3) All genomes are parsed and loaded into microbedb (load_version.pl)
 
+#Note: This script can be set up in a cron job to run weekly/monthly/etc. Previous versions are left untouched and all data is re-downloaded, re-unpacked, and re-loaded into the database. Use "delete_version.pl" to remove these old versions.
 
-#Author Morgan Langille 
-#Last updated: see svn
+#Author Morgan Langille, http://morganlangille.com
 
 use strict;
 use warnings;
@@ -31,7 +33,7 @@ print "Unpacking genome files\n\n";
 system("./unpack_version.pl $download_dir");
 print "Finished unpacking genome files\n\n";
 
-#Load all genomes into microbedb as a new version (note unused versions are deleted before this load is done)
+#Load all genomes into microbedb as a new version
 print "Parsing and loading each genome into NCBI \n";
 system("./load_version.pl $download_dir");
 
