@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+#Deletes a version from MicrobeDB (with optionally choice of also deleting the flat files in addition to the MySQL data)
 
 use warnings;
 use strict;
@@ -10,8 +11,23 @@ use MicrobeDB::FullUpdate;
 
 my $usage = "./delete_version.pl <version_id>\n";
 
-my $version_id = $ARGV[0];
 
+my $version_id = $ARGV[0];
+unless($version_id){
+    my $so = new MicrobeDB::Search();
+    my @vo = $so->table_search('version');
+
+    my $str = join("\t",'Version ID','Download Directory', 'Used By');
+    print "\n". $str,"\n";
+    foreach(@vo){
+	my $used_by = $_->{used_by} ||'';
+	my $str = join("\t",$_->{version_id},$_->{dl_directory},$used_by);
+	print $str,"\n";
+    }
+    print "\nPlease enter the Version ID that you would like saved:\n";
+    $version_id = <STDIN>;
+    chomp($version_id);
+}
 unless ( defined($version_id) ) {
 	print $usage;
 	exit;

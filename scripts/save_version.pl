@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+#This allows a version of MicrobeDB to be "saved" under a user's name. This only protects the files and data in the database when using the "delete_version.pl" tool.
 
 #use warnings;
 use strict;
