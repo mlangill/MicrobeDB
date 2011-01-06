@@ -1,5 +1,6 @@
 #!/usr/bin/perl
-#All genomes are downloaded from NCBI using wget
+#All genomes are downloaded from NCBI using either Aspera (default) or FTP
+#Aspera should be much faster, but if you have problems you might want to try using FTP (download_version.pl --ftp <DIR>)
 
 use strict;
 use warnings;
@@ -10,12 +11,22 @@ use Getopt::Long;
 use LWP::Simple;
 use Config;
 use Cwd;
+
+my $ftp_flag;
+
+my $result = GetOptions ("ftp" => \$ftp_flag);
+
 #Please update the following variables
 my $dir = $ARGV[0];
 
-
-#Download all genomes from NCBI
-my $download_dir = NCBI_aspera($dir);
+my $download_dir;
+if($ftp_flag){    
+    #Download all genomes from NCBI using FTP
+    $download_dir = NCBIftp_wget3($dir);
+}else{
+    #Download all genomes from NCBI using ASPERA
+    $download_dir = NCBI_aspera($dir);
+}
 
 #get_genomeprojfiles($dir);
 print $download_dir;
