@@ -24,7 +24,7 @@ unless($version_id){
 	my $str = join("\t",$_->{version_id},$_->{dl_directory},$used_by);
 	print $str,"\n";
     }
-    print "\nPlease enter the Version ID that you would like saved:\n";
+    print "\nPlease enter the Version ID that you would like deleted:\n";
     $version_id = <STDIN>;
     chomp($version_id);
 }
