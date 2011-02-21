@@ -127,6 +127,9 @@ sub update_genomeproject {
 			#insert into replicon table
 			my $rpv_id = $self->_insert_record( $rep_obj, 'replicon' );
 
+			#add rpv_id to our object manually
+			$rep_obj->rpv_id($rpv_id);
+
 			#Check to see if there are embedded gene objects
 			if ( defined( $rep_obj->genes ) ) {
 
