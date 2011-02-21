@@ -42,7 +42,8 @@ sub NCBI_aspera{
     my $remotedir  = 'genomes/Bacteria/';
     my $parentdir  = "$download_parent_dir";
     my $prefix     = 'Bacteria';
-    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+#    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+    my @file_types = qw/faa ffn fna frn gbk gff rpt/;
     my $parameters = '';
     my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
