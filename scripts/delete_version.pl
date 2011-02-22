@@ -3,6 +3,13 @@
 
 use warnings;
 use strict;
+use Cwd qw(abs_path getcwd);
+
+# Find absolute path of script
+BEGIN{
+my ($path) = abs_path($0) =~ /^(.+)\//;
+chdir($path);
+};
 
 #relative link to the api
 use lib "../../";

@@ -8,53 +8,69 @@ use Time::localtime;
 use Time::Local;
 use File::stat;
 use Getopt::Long;
+use Log::Log4perl;
 use LWP::Simple;
 use Config;
-use Cwd;
+use Cwd qw(abs_path getcwd);
 
-my $ftp_flag;
+BEGIN{
+# Find absolute path of script
+my ($path) = abs_path($0) =~ /^(.+)\//;
+chdir($path);
+};
 
-my $result = GetOptions ("ftp" => \$ftp_flag);
+my $download_dir; my $logger_cfg; my $ftp_flag;
+my $res = GetOptions("directory=s" => \$download_dir,
+		     "logger=s" => \$logger_cfg,
+                     "ftp" => \$ftp_flag,);
 
-#Please update the following variables
-my $dir = $ARGV[0];
+# Find absolute path of script, yes we have to
+# do this again because of scope issues
+my ($path) = abs_path($0) =~ /^(.+)\//;
 
-my $download_dir;
+# Clean up the download path
+$download_dir .= '/' unless $download_dir =~ /\/$/;
+
+# Set the logger config to a default if none is given
+$logger_cfg = "logger.conf" unless($logger_cfg);
+# Set some base logging settings if the logger conf doesn't exist
+$logger_cfg = q/
+    log4perl.rootLogger = INFO, Screen
+
+    log4perl.appender.Screen                          = Log::Log4perl::Appender::Screen
+    log4perl.appender.Screen.layout.ConversionPattern = [%p] (%F line %L) %m%n
+/ unless(-f $logger_cfg);
+Log::Log4perl::init($logger_cfg);
+my $logger = Log::Log4perl->get_logger;
+
 if($ftp_flag){    
     #Download all genomes from NCBI using FTP
-    $download_dir = NCBIftp_wget3($dir);
+    $download_dir = NCBIftp_wget3($download_dir);
 }else{
     #Download all genomes from NCBI using ASPERA
-    $download_dir = NCBI_aspera($dir);
+    $download_dir = NCBI_aspera($download_dir);
 }
 
 #get_genomeprojfiles($dir);
-print $download_dir;
+$logger->info("Using $download_dir");
 
 sub NCBI_aspera{
-    my $download_parent_dir= shift;
+    my $download_dir= shift;
 	
-    my $cur_time = localtime;
-    my ( $DAY, $MONTH, $YEAR ) = ( $cur_time->mday, $cur_time->mon + 1, $cur_time->year + 1900 );
-    if ( $DAY < 10 )   { $DAY   = '0' . $DAY; }
-    if ( $MONTH < 10 ) { $MONTH = '0' . $MONTH; }
-
     my $remotedir  = 'genomes/Bacteria/';
-    my $parentdir  = "$download_parent_dir";
-    my $prefix     = 'Bacteria';
+#    my $parentdir  = "$download_parent_dir";
+#    my $prefix     = 'Bacteria';
 #    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
     my @file_types = qw/faa ffn fna frn gbk gff rpt/;
     my $parameters = '';
     my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
-    my $logdir = $parentdir . 'log/';
+    my $logdir = $download_dir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
     `mkdir $logdir` unless -d $logdir;
-    die "The local parent directory doesn't exist, please create it first\n"
-      unless ( -e $parentdir );
-    my $localdir = $parentdir . "$prefix\_$YEAR\-$MONTH\-$DAY";
-    `mkdir $localdir` unless -d $localdir;
+    die "The local directory doesn't exist, please create it first\n"
+      unless ( -e $download_dir );
 
     #check if 32 bit or 64 bit
     my $ascp_dir;
@@ -63,33 +79,21 @@ sub NCBI_aspera{
     }else{
 	$ascp_dir='aspera_32';
     }
-    my $cwd = cwd();
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
     if ( $parameters eq '' ) {
-	$parameters = './'.$ascp_dir."/connect/bin/ascp -QT -l 50M -k2 -L $logdir -i ".$cwd.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
+	$parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 50M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
     }
 
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
     foreach(@file_types){
 	my $remotefile='all.'.$_.'.tar.gz';
-	&runascp( $parameters, $remotedir, $remotefile,$localdir );
+	&runascp( $parameters, $remotedir, $remotefile,$download_dir );
     }
-    if ($get_gprj) { &get_genomeprojfiles($localdir); }
+    if ($get_gprj) { &get_genomeprojfiles($download_dir); }
     
 
-    #create a sym link from Bacteria to the new directory
-    unlink "$parentdir$prefix" if ( -l "$parentdir$prefix" );
-    symlink "$localdir", "$parentdir$prefix"
-      or &writetolog("Unable to create symlink from $localdir to $parentdir$prefix\n");
-
-    if ($clean) {
-        &cleandirectory( $cur_time, $parentdir );
-    }
-
-    #return the directory that contains the newly downloaded genomes from NCBI
-    return $localdir;
 }
 
 sub runascp{
@@ -109,28 +113,22 @@ sub runascp{
     
 
 sub NCBIftp_wget3 {
-    my $download_parent_dir= shift;
+    my $localdir= shift;
 	
-    my $cur_time = localtime;
-    my ( $DAY, $MONTH, $YEAR ) = ( $cur_time->mday, $cur_time->mon + 1, $cur_time->year + 1900 );
-    if ( $DAY < 10 )   { $DAY   = '0' . $DAY; }
-    if ( $MONTH < 10 ) { $MONTH = '0' . $MONTH; }
-
     my $host       = 'ftp://ftp.ncbi.nih.gov';
     my $remotedir  = 'genomes/Bacteria/all.*';
-    my $parentdir  = "$download_parent_dir";
-    my $prefix     = 'Bacteria';
     my $parameters = '';
     my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
-    my $logdir = $parentdir . 'log/';
+    my $logdir = $localdir . '/log/';
     my $logfile = $logdir . "NCBI_FTP.log";
     `mkdir $logdir` unless -d $logdir;
 
-    die "The local parent directory doesn't exist, please create it first\n"
-      unless ( -e $parentdir );
-    my $localdir = $parentdir . "$prefix\_$YEAR\-$MONTH\-$DAY";
+    $logger->fatal("The local directory doesn't exist, please create it first\n")
+      unless ( -e $localdir );
+    die "The local directory doesn't exist, please create it first\n"
+      unless ( -e $localdir );
 
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
@@ -144,26 +142,15 @@ sub NCBIftp_wget3 {
     #if the output dir exists, put a warning in log and overwrite if asked
     if ( -e $localdir ) {
         if ($overwrite) {
-            &writetolog( "Directory $localdir already exists, files is being overwritten\n",
-                $logfile );
+	    $logger->warn("Directory $localdir already exists, files is being overwritten\n");
             &runwget;
             if ($get_gprj) { &get_genomeprojfiles; }
         } else {
-            &writetolog( "Update failed on $YEAR-$MONTH-$DAY because directory already exists \n",
-                $logfile );
+	    $logger->error("Update failed on $localdir because directory already exists \n");
         }
     } else {
         &runwget( $parameters, $host, $remotedir );
         if ($get_gprj) { &get_genomeprojfiles($localdir); }
-    }
-
-    #create a sym link from Bacteria to the new directory
-    unlink "$parentdir$prefix" if ( -l "$parentdir$prefix" );
-    symlink "$localdir", "$parentdir$prefix"
-      or &writetolog("Unable to create symlink from $localdir to $parentdir$prefix\n");
-
-    if ($clean) {
-        &cleandirectory( $cur_time, $parentdir );
     }
 
     #return the directory that contains the newly downloaded genomes from NCBI
@@ -197,27 +184,6 @@ sub get_genomeprojfiles {
     print COMPGEN $content2;
     close ORGINFO;
     close COMPGEN;
-}
-
-#delete backup directories that are older than 90 days
-sub cleandirectory {
-    my $curdate = shift;
-    my $dir     = shift;
-    opendir( DIR, $dir );
-    my $file;
-    while ( defined( $file = readdir(DIR) ) ) {
-        next if $file =~ /^\.\.?$/;
-        if ( -d $file ) {
-            my $filestat        = stat($file);
-            my $filechangeinode = $filestat->ctime;
-            my $filechangedate  = localtime($filechangeinode);
-
-            #90 days has 7776000 seconds
-            if ( $curdate - $filechangedate > 7776000 ) {
-                system("rm -rf $file");
-            }
-        }
-    }
 }
 
 sub writetolog {

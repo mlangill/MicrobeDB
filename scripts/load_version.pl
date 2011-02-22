@@ -11,6 +11,14 @@ use Time::Local;
 use File::stat;
 use Getopt::Long;
 use LWP::Simple;
+use Log::Log4perl;
+use Cwd qw(abs_path getcwd);
+
+BEGIN{
+# Find absolute path of script
+my ($path) = abs_path($0) =~ /^(.+)\//;
+chdir($path);
+};
 
 #relative link to the api
 use lib "../../";
@@ -22,10 +30,22 @@ use MicrobeDB::Search;
 use XML::Simple;
 use LWP::Simple;
 
+my $download_dir; my $logger_cfg;
+my $res = GetOptions("directory=s" => \$download_dir,
+		     "logger=s" => \$logger_cfg,);
 
-my $download_dir = $ARGV[0];
-unless ( $download_dir && -d $download_dir ) {
+# Set the logger config to a default if none is given
+$logger_cfg = "logger.conf" unless($logger_cfg);
+Log::Log4perl::init($logger_cfg);
+my $logger = Log::Log4perl->get_logger;
+
+# Clean up the download path
+$download_dir .= '/' unless $download_dir =~ /\/$/;
+
+#my $download_dir = $ARGV[0];
+unless ( $download_dir && -d $download_dir && -e "$download_dir/NCBI_completegenomes.txt" ) {
 	print "Input the directory containing the downloaded organisms from NCBI.\n";
+	$logger->fatal("Download directory not valid: $download_dir");
 	exit;
 }
 
@@ -42,7 +62,8 @@ sub load_microbedb {
 	my $so = new MicrobeDB::Search();
 	foreach my $curr_dir (@genome_dir) {
 	    print "$curr_dir \n";
-	    my $data_hash;
+	    $logger->debug("Working on $curr_dir");
+	    my $data_hash = undef;
 	    
 	    eval {
 		

@@ -93,6 +93,10 @@ sub _db_connect {
 
 	#Make connection to the database
 	
+	# Do we have an existing connection? If so, just return it
+	# Yay singletons!
+#	return $self->{dbhandle} if($self->{dbhandle});
+
 	my $dbh;
 	
 	my $max_tries = 5;
@@ -117,6 +121,10 @@ sub _db_connect {
 	unless(defined($dbh)){
 	    die "Can't connect to db:$!";
 	}
+	
+	# Save the dhb for later
+#	$self->{dbhandle} = $dbh;
+
 	return $dbh;
 }
 

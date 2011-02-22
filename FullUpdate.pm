@@ -3,6 +3,7 @@ package MicrobeDB::FullUpdate;
 #inherit common methods from the MicroDB class
 use base ("MicrobeDB::MicrobeDB");
 use DBI;
+use Log::Log4perl qw(get_logger :nowarn);
 
 use strict;
 use warnings;
@@ -16,6 +17,8 @@ use MicrobeDB::Gene;
 use MicrobeDB::Search;
 
 my @FIELDS = qw(dl_directory version_id dbh);
+
+my $logger = Log::Log4perl->get_logger();
 
 sub new {
 
@@ -34,8 +37,11 @@ sub new {
 		$self->$_( $arg{$_} );
 	}
 	unless ( defined( $self->dl_directory ) ) {
+	        $logger->fatal("No download directory specified");
 		croak("A download directory must be supplied");
 	}
+
+	$logger->info("Using download directory " . $self->dl_directory);
 
 	$self->dbh( $self->_db_connect() );
 	return $self;
@@ -50,6 +56,7 @@ sub _new_version {
 	#$self->_delete_unused_versions();
 
 	my $dir = $self->dl_directory();
+	$logger->info("Using download directory $dir");
 
 	#use the date from the download directory name or use the current date
 	my $current_date;
@@ -59,6 +66,7 @@ sub _new_version {
 		$current_date = `date +%F`;
 		chomp($current_date);
 	}
+	$logger->info("Using datestamp $current_date");
 
 	#Create new version record
 	my $sth = $dbh->prepare( qq{INSERT version (dl_directory,version_date)VALUES ('$dir', '$current_date')} );
@@ -66,6 +74,7 @@ sub _new_version {
 
 	#This should return the auto_increment number that was just updated
 	my $version = $dbh->last_insert_id( undef, undef, undef, undef );
+	$logger->info("Created new MicrobeDB version $version");
 
 	return $version;
 
@@ -98,6 +107,7 @@ sub update_genomeproject {
 	#Create a new version unless it is already set
 	unless ( $self->version_id ) {
 		$self->version_id( $self->_new_version() );
+		$logger->debug("We had to create a new version");
 	}
 
 	#Set the version id
@@ -127,7 +137,7 @@ sub update_genomeproject {
 			#insert into replicon table
 			my $rpv_id = $self->_insert_record( $rep_obj, 'replicon' );
 
-			#add rpv_id to our object manually
+                        #add rpv_id to our object manually
 			$rep_obj->rpv_id($rpv_id);
 
 			#Check to see if there are embedded gene objects

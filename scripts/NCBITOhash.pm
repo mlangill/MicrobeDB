@@ -70,6 +70,8 @@ sub genomedata2hash {
 	#    my @req_filetypes = qw/gpt rpt fna gff faa ffn gbk/;
 	my @req_filetypes  = qw/rpt fna faa ffn gbk/;
 	my @optional_files = qw/frn gff/;
+#	my @skip_prefix = qw/NS_\d\d\d\d\d\d/;
+	my @skip_prefix = qw//;
 
 	my @files = get_allfiles_byext( $directory, @req_filetypes );
 	die "File missing in directory: $directory"
@@ -84,6 +86,7 @@ sub genomedata2hash {
 	my ( $base, $dir, $ext );
 	foreach my $file (@files) {
 		{
+		        next if(map { $file =~ /$_/ } @skip_prefix);
 			( $base, $dir, $ext ) = fileparse( $file, '\..*' );
 			$ext =~ s/\.//;
 			no strict "refs";
