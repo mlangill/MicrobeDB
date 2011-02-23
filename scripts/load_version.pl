@@ -88,6 +88,7 @@ sub load_microbedb {
 		    if ($@) {
 			warn
 			    "Couldn't retrieve taxon information from NCBI for taxon id:$taxon_id. Lineage fields will not be filled for $curr_dir ";
+			$logger->error("Couldn't retrieve taxon information from NCBI for taxon id:$taxon_id. Lineage fields will not be filled for $curr_dir ");
 		    }
 		}
 		
@@ -100,7 +101,8 @@ sub load_microbedb {
 	    
 	    #if there was a parsing problem, give a warning and skip to the next genome project
 	    if ($@) {
-		warn "WARNING, Couldn't add the following to microbedb: $curr_dir \nReason: $@\n";
+		warn "Couldn't add the following to microbedb: $curr_dir ! Reason: $@";
+		$logger->error("Couldn't add the following to microbedb: $curr_dir ! Reason: $@");
 		next;
 	    }
 	    
