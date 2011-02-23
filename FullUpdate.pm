@@ -221,7 +221,7 @@ sub _insert_record {
 
 }
 
-#Deletes a complete microbedb version (from all tables) AND removes flat files
+#Deletes a complete microbedb version (from all tables) AND removes flat files unless save_files is set to 1
 sub delete_version {
 	my ( $self, $version_id, $save_files ) = @_;
 
@@ -241,9 +241,9 @@ sub delete_version {
 	#list of tables to delete records from
 	my @tables_to_delete = qw/genomeproject replicon gene version/;
 
-	#delete records corresponding to the version id in each table
+	#delete records corresponding to the version id in each table (use QUICK since there are millions of genes)
 	foreach my $curr_table (@tables_to_delete) {
-		my $sql = "DELETE FROM $curr_table WHERE version_id = $version_id ";
+		my $sql = "DELETE QUICK FROM $curr_table WHERE version_id = $version_id ";
 
 		#Prepare the statement
 		my $sth = $dbh->prepare($sql);
@@ -252,6 +252,9 @@ sub delete_version {
 		$sth->execute();
 
 	}
+	#optimize the tables (needed to reduce "overhead" in the tables after large deletes, especially when using DELETE QUICK)
+	$dbh->do("OPTIMIZE TABLE ".join(",",@tables_to_delete));
+
 	unless ($save_files) {
 
 		#delete the actual files
