@@ -20,7 +20,7 @@ my $usage = "./delete_version.pl <version_id>\n";
 
 
 my $version_id = $ARGV[0];
-unless($version_id){
+unless(defined($version_id)){
     my $so = new MicrobeDB::Search();
     my @vo = $so->table_search('version');
 
@@ -54,7 +54,7 @@ if ( $confirm eq 'y' ) {
 	} else {
 		print "Deleting records in mysql. Flat files will remain untouched. Please wait.\n";
 	}
-	my $up_obj = new MicrobeDB::FullUpdate( dl_directory => '/' );
+	my $up_obj = new MicrobeDB::FullUpdate( dl_directory => '/',version_id=>$version_id );
 	my $notice = $up_obj->delete_version( $version_id, $save_files );
 	if ($notice) {
 		print "Version $version_id has been successfully removed.\n";

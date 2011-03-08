@@ -16,7 +16,10 @@ use MicrobeDB::Replicon;
 use MicrobeDB::Gene;
 use MicrobeDB::Search;
 
-my @FIELDS = qw(dl_directory version_id dbh);
+my @FIELDS;
+BEGIN { @FIELDS = qw(dl_directory version_id dbh); }
+
+use fields  @FIELDS;
 
 my $logger = Log::Log4perl->get_logger();
 
@@ -24,13 +27,8 @@ sub new {
 
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {
@@ -41,9 +39,25 @@ sub new {
 		croak("A download directory must be supplied");
 	}
 
+	$self->dbh( $self->_db_connect() );
+
+	if(defined($self->version_id())){
+	    my $version_id=$self->version_id();
+	    #check if this version is already made
+	    my $so = new MicrobeDB::Search();
+	    my ($version)=$so->table_search('version',{version_id=>$version_id});
+	    unless(defined($version)){
+		$self->version_id($self->_new_version());
+		$logger->info("Making new version because we couldn't find version with version_id: $version_id"); 
+	    }
+	}else{
+	    $self->version_id( $self->_new_version() );
+	    $logger->info("We had to create a new version");
+	}
+	
+
 	$logger->info("Using download directory " . $self->dl_directory);
 
-	$self->dbh( $self->_db_connect() );
 	return $self;
 }
 
@@ -68,14 +82,27 @@ sub _new_version {
 	}
 	$logger->info("Using datestamp $current_date");
 
+	my $version_id = $self->version_id();
 	#Create new version record
-	my $sth = $dbh->prepare( qq{INSERT version (dl_directory,version_date)VALUES ('$dir', '$current_date')} );
+	my $sth;
+	if(defined($version_id)){
+	    $sth = $dbh->prepare( qq{INSERT version (version_id,dl_directory,version_date)VALUES ($version_id,'$dir', '$current_date')} );
+	}else{
+	    $sth = $dbh->prepare( qq{INSERT version (dl_directory,version_date)VALUES ('$dir', '$current_date')} );
+	}
+	#Create new version record
 	$sth->execute();
 
 	#This should return the auto_increment number that was just updated
 	my $version = $dbh->last_insert_id( undef, undef, undef, undef );
-	$logger->info("Created new MicrobeDB version $version");
 
+	#If it is the custom version (i.e. version_id ==0) then we need to update the insert since auto increment gives a new id if set to 0
+	if($version_id ==0){
+	    $dbh->do(qq{UPDATE version SET version_id=0 where version_id=$version});
+	    $version=$version_id;
+	};
+	$logger->info("Created new MicrobeDB version $version");
+	
 	return $version;
 
 }
@@ -104,20 +131,11 @@ sub _delete_unused_versions {
 sub update_genomeproject {
 	my ( $self, $gpo ) = @_;
 
-	#Create a new version unless it is already set
-	unless ( $self->version_id ) {
-		$self->version_id( $self->_new_version() );
-		$logger->debug("We had to create a new version");
-	}
-
 	#Set the version id
 	$gpo->version_id( $self->version_id );
 
 	#insert into genomeproject table
 	my $gpv_id = $self->_insert_record( $gpo, 'genomeproject' );
-
-	#insert into reference table
-	#my $ref_id = $self->_insert_record( $gpo, 'reference' );
 
 	#insert into taxonomy table
 	my $tax_id = $self->_insert_record( $gpo, 'taxonomy' );
