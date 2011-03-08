@@ -139,7 +139,7 @@ sub AUTOLOAD {
 
     #Die if the key does not already exist in the hash
     unless (exists($self->{$attr})){
-	croak "No such attribute '$attr' exists in the class ";
+#	croak "No such attribute '$attr' exists in the class ";
     }
 
     # Turn off strict references to enable "magic" AUTOLOAD speedup
