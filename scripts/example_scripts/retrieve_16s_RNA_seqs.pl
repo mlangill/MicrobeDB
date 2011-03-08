@@ -14,14 +14,16 @@
 use warnings;
 use strict;
 
-use lib "../../";
+use lib "../../../";
 
 #we need to use the Search library (this also imports GenomeProject,Replicon, and Gene libs)
 use MicrobeDB::Search;
 
-#Create an object with certain features that we want
-#In this case, we are searching for all chromosomes (i.e. not plasmids) from download version 10
-my $rep_obj = new MicrobeDB::Replicon( version_id => '10', rep_type => 'chromosome' );
+warn "What version?\n";
+my $version_id=<STDIN>;
+chomp($version_id);
+#Create an object with certain features that we want (e.g rep_type='chromosome')
+my $rep_obj = new MicrobeDB::Replicon( version_id => $version_id);
 
 #Create the search object.
 my $search_obj = new MicrobeDB::Search();
