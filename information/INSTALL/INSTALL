@@ -18,7 +18,7 @@ chmod 600 $HOME/.my.cnf
 mysql -u root -p -e "CREATE DATABASE microbedb"
 
 3)Load the microbedb table structures
-mysql -u root -p microbedb < microbedb_struct.sql
+mysql -u root -p microbedb < microbedb_schema.sql
 
 4)Get the genome files from genbank via ftp/ASPERA and parse files into mysql (this can take awhile time)
 ./scripts/download_load_and_delete_old_version.pl
@@ -26,3 +26,7 @@ mysql -u root -p microbedb < microbedb_struct.sql
 Note: *If the download completes but there are errors in the parsing stage, then "run_update.pl <download_dir>" can be used to just redo the parsing part.
 
 5)Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as other perl modules or by adding the path to MicrobeDB to your $PERL5LIB environment variable
+
+
+#To load your personal genomes:
+./scripts/load_custom_genomes.pl -d <your_directory>
