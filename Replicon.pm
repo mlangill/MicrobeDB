@@ -187,7 +187,7 @@ sub _retrieve_genes{
 }
 
 sub genes{
-#returns, sets, and finds replicons associated with this genome project
+#returns, sets, and finds replicons associated with this replicon
     my ($self,$new_genes) = @_;
 
     #Set the new value for the attribute if available (stored as a reference to an array)
@@ -198,6 +198,28 @@ sub genes{
     }else{
         return $self->_retrieve_genes();
     }
+}
+
+#returns, sets, and finds replicon sequence associated with this replicon
+sub rep_seq{
+    my ($self,$rep_seq) = @_;
+
+    #Set the new value for the attribute if given
+    $self->{rep_seq} = $rep_seq if defined($rep_seq);
+
+    if(defined($self->{rep_seq})){
+	return $self->{rep_seq};
+    }else{
+        return $self->_retrieve_rep_seq();
+    }
+}
+
+sub _retrieve_rep_seq{
+    my ($self) =@_;
+    my $so = new MicrobeDB::Search(return_seqs=>1);
+    my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
+    
+    return $replicon->rep_seq();
 }
 
 sub table_names {    
