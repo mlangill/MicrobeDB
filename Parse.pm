@@ -57,7 +57,7 @@ sub parse_custom_genome{
     my @files = glob($dir.'/*');
 
     #get genbank files
-    my @gbk_files = grep{/.gbk/i || /.genbank/i}@files;
+    my @gbk_files = grep{/.gbk/i || /.genbank/i ||/.embl/i}@files;
 
     unless(@gbk_files){
 	$logger->error("No genbank files found in directory: $dir");
@@ -69,11 +69,11 @@ sub parse_custom_genome{
     
     if($gpo->taxon_id){
 	$self->parse_taxonomy();
-    }else{
+    }
+    unless($gpo->org_name){
 	#use directory name for org_name in genomeproject
 	$gpo->org_name(basename($dir));
     }
-    
     
     return $gpo;
 
@@ -83,7 +83,6 @@ sub parse_taxonomy{
     my ($self)=@_;
     my $gpo = $self->gpo();
     my $taxon_id = $gpo->taxon_id;
-    
     my $so = new MicrobeDB::Search;
     my ($taxon)    = $so->table_search( 'taxonomy', { taxon_id => $taxon_id } );
     #set the 
@@ -113,19 +112,9 @@ sub parse_gbk {
 	my ($self,$file) = @_;
 
 	my $genome=$self->gpo();
-	#Decided to start using BioPerl to extract gene sequences
-	my $in = Bio::SeqIO->new( -file => $file, -format => 'genbank' );
-	my ($file_name,$dir,$ext)=fileparse($file,qr/\.[^.]*/);
-	while ( my $seq = $in->next_seq() ) {
-
-	    #set stuff about the species
-	    my $species = $seq->species();
-	    if($species){
-		my $taxon_id=$species->ncbi_taxid();
-		$genome->taxon_id($taxon_id) if $taxon_id;
-		my $taxon_name=$species->binomial('FULL');
-		$genome->org_name($taxon_name) if $taxon_name;
-	    }
+	my ($IN,$file_name,$ext) = $self->load_file($file);
+	
+	while ( my $seq = <$IN> ) {
 
 	    #set stuff about the replicon
 	    my $rep= new MicrobeDB::Replicon();
@@ -158,6 +147,18 @@ sub parse_gbk {
 	    
 	    foreach my $feat ($seq->get_SeqFeatures()) {
 		my $gene_type = $feat->primary_tag();
+		if($gene_type eq 'source'){
+		    my ($org_name)= $feat->has_tag('organism') ? $feat->get_tag_values('organism') : '';
+		    $genome->org_name($org_name) if $org_name;
+		    my @db_xref = $feat->has_tag('db_xref') ? $feat->get_tag_values('db_xref') : '';
+		    my $taxon_id;
+		    foreach (@db_xref) {
+			if (/taxon:(\d+)/) {
+			    $genome->taxon_id($1);
+			    last;
+			}
+		    }
+		}
 		next unless $valid_gene_types{$gene_type};
 		$gene_count++;
 		my $protein_seq = '';
@@ -232,6 +233,47 @@ sub parse_gbk {
 	    $genome->add_replicon($rep);
 	}
 	return $genome;
+}
+
+
+#load a file(s) into bioperl
+#accept gzip files
+#guess file type by extension
+sub load_file{
+    my ($self, $file)=@_;
+   	$logger->info("Parsing file: $file");
+	my($name,$path,$file_suffix)=fileparse($file,qr/\.[^.]*/);
+
+    my $format_suffix;
+    my $FH_IN;
+    if($file_suffix eq '.gzip' || $file_suffix eq '.gz'){
+	    $logger->debug("File is gzipped.");
+	    open($FH_IN,"zcat $file|");
+	    ($name,$path,$format_suffix)=fileparse($name,qr/\.[^.]*/);
+	    $file_suffix=$format_suffix .$file_suffix;
+	}else{
+	    $format_suffix=$file_suffix;
+	    $logger->debug("File is not gzipped.");
+	    open($FH_IN,$file);
+	}
+	my $format;
+	if($format_suffix =~ /genbank/i || $format_suffix =~ /gbk/i){
+	    $format='genbank';
+	}elsif($format_suffix =~ /fasta/i|| $format_suffix =~ /fa/i || $format_suffix =~ /fna/i || $format_suffix =~ /faa/i || $format_suffix =~ /ffn/i){
+	    $format='fasta';
+	}elsif($format_suffix =~ /embl/i){
+	    $format='embl';
+	}else{
+	    $logger->fatal("Don't know how to handle file with suffix: $format_suffix !");
+	}
+	$logger->debug("Giving BioPerl file format: $format");
+	my $IN = Bio::SeqIO->newFh(
+	    -fh   => $FH_IN,
+	    -format => $format
+	    );
+    
+    return $IN,$name,$file_suffix;
+	
 }
 
 
