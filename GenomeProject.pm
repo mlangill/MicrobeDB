@@ -15,6 +15,8 @@ use Carp;
 
 require MicrobeDB::Replicon;
 
+use MicrobeDB::Search;
+
 #our $AUTOLOAD;
 
 #All fields in the following arrays correspond to the fields in the database
@@ -204,6 +206,66 @@ sub replicons{
     }
     #return the current content 
     return $self->{replicons};
+}
+
+#returns, sets, and finds genome size associated with this genome project
+sub genome_size{
+    my ($self,$genome_size)=@_;
+    $self->{genome_size} = $genome_size if defined($genome_size);
+    
+    unless(defined($self->{genome_size})){
+	$self->genome_size($self->_calc_genome_size());
+    }
+
+    return $self->{genome_size};
+}
+
+
+#calculates the genome size by adding up all the rep sizes
+sub _calc_genome_size{
+    my ($self)=@_;
+    my $genome_size;
+    foreach my $rep (@{$self->replicons()}){
+	$genome_size+=$rep->rep_size();
+    }
+    #format the size to be in Mb
+    $genome_size = sprintf("%.2f",$genome_size/1000000);
+    return $genome_size;
+}
+
+#returns, sets, and finds genome gc associated with this genome project
+sub genome_gc{
+    my ($self,$genome_gc)=@_;
+    $self->{genome_gc} = $genome_gc if defined($genome_gc);
+    
+    unless(defined($self->{genome_gc})){
+	$self->genome_gc($self->_calc_genome_gc());
+    }
+
+    return $self->{genome_gc};
+}
+
+
+#calculates the genome size by adding up all the rep sizes
+sub _calc_genome_gc{
+    my ($self)=@_;
+    my $genome_gc;
+    my $g_count=0;
+    my $c_count=0;
+    my $genome_size=0;
+    foreach my $rep (@{$self->replicons()}){
+	if(defined($rep->rep_seq())){
+	    $g_count += ($rep->{rep_seq} =~ tr/g//);
+	    $g_count += ($rep->{rep_seq} =~ tr/G//);
+	    $c_count += ($rep->{rep_seq} =~ tr/c//);
+	    $c_count += ($rep->{rep_seq} =~ tr/C//);
+	    $genome_size += $rep->rep_size();
+	}
+    }
+    $genome_gc = ($g_count+$c_count)/($genome_size);
+    #format the number
+    $genome_gc = sprintf("%.2f",$genome_gc*100);
+    return $genome_gc;
 }
 
 #returns an array of fields
