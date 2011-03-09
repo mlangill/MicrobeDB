@@ -48,11 +48,11 @@ sub new {
 	    my ($version)=$so->table_search('version',{version_id=>$version_id});
 	    unless(defined($version)){
 		$self->version_id($self->_new_version());
-		$logger->info("Making new version because we couldn't find version with version_id: $version_id"); 
+		$logger->debug("Making new version because we couldn't find version with version_id: $version_id"); 
 	    }
 	}else{
 	    $self->version_id( $self->_new_version() );
-	    $logger->info("We had to create a new version");
+	    $logger->debug("We had to create a new version");
 	}
 	
 
@@ -80,7 +80,7 @@ sub _new_version {
 		$current_date = `date +%F`;
 		chomp($current_date);
 	}
-	$logger->info("Using datestamp $current_date");
+	$logger->debug("Using datestamp $current_date");
 
 	my $version_id = $self->version_id();
 	#Create new version record
@@ -97,7 +97,7 @@ sub _new_version {
 	my $version = $dbh->last_insert_id( undef, undef, undef, undef );
 
 	#If it is the custom version (i.e. version_id ==0) then we need to update the insert since auto increment gives a new id if set to 0
-	if($version_id ==0){
+	if(defined($version_id)&& $version_id ==0){
 	    $dbh->do(qq{UPDATE version SET version_id=0 where version_id=$version});
 	    $version=$version_id;
 	};
