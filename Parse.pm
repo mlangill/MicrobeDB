@@ -48,13 +48,13 @@ sub new {
 	return $self;
 }
 
-sub parse_custom_genome{
+sub parse_genome{
     my ($self,$dir)=@_;
 
     my $gpo=$self->gpo();
     $gpo->gpv_directory($dir);
 
-    my @files = glob($dir.'/*');
+    my @files = glob($dir.'*');
 
     #get genbank files
     my @gbk_files = grep{/.gbk/i || /.genbank/i ||/.embl/i}@files;
@@ -71,10 +71,26 @@ sub parse_custom_genome{
 	$self->parse_taxonomy();
     }
     unless($gpo->org_name){
-	#use directory name for org_name in genomeproject
+	$logger->warn("org_name not set, so using directory name for org_name in genomeproject");
 	$gpo->org_name(basename($dir));
     }
-    
+    	
+    (my  $parentdir = $dir ) =~ s/(.+)\/.+\/?/$1/;
+    my $NCBI_comp_genomes = "$parentdir/NCBI_completegenomes.txt";
+    my $NCBI_org_info = "$parentdir/NCBI_orginfo.txt";
+    if(-e $NCBI_org_info){
+	$logger->debug("Parsing file: $NCBI_org_info");
+	$self->parse_ncbiorginfofile( $NCBI_org_info);
+    }else{
+	$logger->warn("Can't find file:$NCBI_comp_genomes . GenomeProject table will not contain much organism information.");
+    }
+    if(-e $NCBI_comp_genomes){
+	$logger->debug("Parsing file: $NCBI_comp_genomes");
+	$self->parse_ncbicompgenomefile( $NCBI_comp_genomes);
+    }else{
+	$logger->warn("Can't find file:$NCBI_comp_genomes . GenomeProject table will be missing a few fields of information.");
+    }
+
     return $gpo;
 
 }
@@ -99,8 +115,6 @@ sub parse_taxonomy{
 	    }
 	};
 	if ($@) {
-	    warn
-		"Couldn't retrieve taxon information from NCBI for taxon id:$taxon_id.";
 	    $logger->error("Couldn't retrieve taxon information from NCBI for taxon id:$taxon_id.");
 	}
     }
@@ -233,6 +247,137 @@ sub parse_gbk {
 	    $genome->add_replicon($rep);
 	}
 	return $genome;
+}
+sub parse_ncbicompgenomefile {
+    my($self,$complete_genome_file)=@_;
+    my $gpo=$self->gpo();
+    my $gp_id=$gpo->gp_id();
+    
+    unless($gp_id){
+	$logger->warn("No gp_id so can't look up organism information in $complete_genome_file");
+	return;
+    }
+    open( my $COMPFILE, $complete_genome_file ) or die "Can't read file: $complete_genome_file\n";
+    my @headings;
+    my $found_orginfo=0;
+    my %comp_org_parse;
+    while (<$COMPFILE>) {
+	chomp;
+	if (/^## Columns:\s+(.+)$/) {
+	    @headings = split( /\t/, $1 );
+	    for ( my $cnum = 0 ; $cnum < scalar(@headings) ; $cnum++ ) {
+		$headings[$cnum] =~ s/^"(.+)"$/$1/;
+	    }
+	} elsif (/^\d+\s+\w+/) {
+	    my @entries = split(/\t/);
+	    
+	    if ( $entries[1] == $gp_id ) {
+		my $i = 0;
+		foreach (@entries) {
+		    $comp_org_parse{ $headings[$i] } = $_;
+		    $i++;
+		}
+		$found_orginfo=1;
+		last;
+	    }   
+	}
+    }
+    
+    if($found_orginfo){
+	#map the old code parse hash to the gpo
+	$gpo->centre($comp_org_parse{'List of Center/Consortium (pipe separated)'}) if exists($comp_org_parse{'List of Center/Consortium (pipe separated)'});
+
+	if(exists($comp_org_parse{'Released date'})){
+	    my ( $month, $day, $year ) = split /\//, $comp_org_parse{'Released date'};
+	    $day   =~ s/(\d)/0$1/ if ( $day   =~ /^\d$/ );
+	    $month =~ s/(\d)/0$1/ if ( $month =~ /^\d$/ );
+	    $gpo->release_date("$year-$month-$day");
+	}
+
+	#note these will be calculated from the replicons if not set here during the loading of the gpo
+	$gpo->chromosome_num($comp_org_parse{'Number of Chromosomes'}) if exists($comp_org_parse{'Number of Chromosomes'});
+	$gpo->plasmid_num($comp_org_parse{'Number of Plasmids'}) if exists($comp_org_parse{'Number of Plasmids'});
+
+    }else{
+	$logger->warn("Couldn't find Project ID: $gp_id within the complete_genome_file: $complete_genome_file . A few fields in GenomeProject will not be filled for this organism");	
+    }
+}
+
+sub parse_ncbiorginfofile {
+    my($self,$org_info_file)=@_;
+    my $gpo=$self->gpo();
+    my $taxon_id=$gpo->taxon_id();
+
+    unless($taxon_id){
+	$logger->warn("No taxon_id so can't look up organism information in $org_info_file");
+	return;
+    }
+
+    my @headings;
+    my $found_orginfo=0;
+    my %info_org_parse;
+    open( my $INFOFILE, $org_info_file ) or die "Can't open file: $org_info_file\n";
+    #use some old parsing code here
+    while (<$INFOFILE>) {
+	chomp;
+	if (/^\#\# Columns:\s+(.+)$/) {
+	    @headings = split( /\t/, $1 );
+	    for ( my $cnum = 0 ; $cnum < scalar(@headings) ; $cnum++ ) {
+		$headings[$cnum] =~ s/^"(.+)"$/$1/;
+	    }
+	} elsif (/^\d+\s+\w+/) {
+	    my @entries = split(/\t/);
+	    if ( $entries[2] == $taxon_id ) {
+		my $i=0;
+		foreach (@entries) {
+		    $info_org_parse{ $headings[$i] } = $_;
+		    $i++;
+		}
+		$found_orginfo=1;
+		last;
+	    }
+	}
+    }
+    if($found_orginfo){
+	#map the old code parse hash to the gpo
+	$gpo->gp_id($info_org_parse{'Project ID'}) if exists($info_org_parse{'Project ID'});
+	$gpo->gram_stain($info_org_parse{'Gram Stain'}) if exists($info_org_parse{'Gram Stain'});
+	$gpo->disease($info_org_parse{'Disease'}) if exists($info_org_parse{'Disease'});
+	$gpo->pathogenic_in($info_org_parse{'Pathogenic in'}) if exists($info_org_parse{'Pathogenic in'});
+	$gpo->temp_range($info_org_parse{'Temp. range'}) if exists($info_org_parse{'Temp. range'});
+	$gpo->habitat($info_org_parse{'Habitat'}) if exists($info_org_parse{'Habitat'});
+	$gpo->shape($info_org_parse{'Shape'}) if exists($info_org_parse{'Shape'});
+	$gpo->arrangement($info_org_parse{'Arrangment'}) if exists($info_org_parse{'Arrangment'});
+	$gpo->endospore($info_org_parse{'Endospores'}) if exists($info_org_parse{'Endospores'});
+	$gpo->motility($info_org_parse{'Motility'}) if exists($info_org_parse{'Motility'});
+	$gpo->salinity($info_org_parse{'Salinity'}) if exists($info_org_parse{'Salinity'});
+	$gpo->oxygen_req($info_org_parse{'Oxygen Req'}) if exists($info_org_parse{'Oxygen Req'});
+	
+	#note these will be calculated from the replicons if not set here during the loading of the gpo
+	$gpo->genome_size($info_org_parse{'Genome Size'}) if exists($info_org_parse{'Genome Size'});
+
+	my $gc_content = $info_org_parse{'GC Content'} if exists($info_org_parse{'GC Content'});
+	if($gc_content =~ /\d+/){
+	    $gpo->genome_gc($gc_content);
+	}
+	
+	my $pathogenic_in=$gpo->pathogenic_in();
+	if($pathogenic_in){
+	    my $patho_status;
+	    if ( $pathogenic_in eq 'No' ) {
+		$patho_status = 'nonpathogen';
+	    } elsif ( $pathogenic_in =~ /^\s*$/ ) {
+		$patho_status = 'unknown';
+	    } else {
+		$patho_status = 'pathogen';
+	    }
+	    $gpo->patho_status($patho_status);
+	}
+	
+    }else{
+	$logger->warn("Couldn't find taxon id: $taxon_id within the org_info_file: $org_info_file . Many fields in GenomeProject will not be filled for this organism");
+    }
+
 }
 
 
