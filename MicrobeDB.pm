@@ -10,7 +10,11 @@ use DBI;
 
 our $AUTOLOAD;
 
-my @GENERAL_FIELDS = qw(comment);
+my @FIELDS;
+BEGIN{
+    @FIELDS = qw(comment);
+}
+use fields @FIELDS;
 
 #PATH Settings
 
@@ -27,13 +31,8 @@ my ($user,$pass) = ("","");
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@GENERAL_FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {

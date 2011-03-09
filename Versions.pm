@@ -14,15 +14,6 @@ use MicrobeDB::Search;
 use MicrobeDB::Version;
 use Carp;
 
-my @version = qw(
-    version_id
-    dl_directory
-    version_date
-    used_by
-    file_deleted
-    prev_version_id
-);
-
 sub new {
     my ( $class, %arg ) = @_;
 

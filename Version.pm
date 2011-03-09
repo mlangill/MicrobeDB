@@ -11,6 +11,10 @@ use base ("MicrobeDB::MicrobeDB");
 
 use Carp;
 
+my @FIELDS;
+my @_tables;
+BEGIN{
+
 my @version = qw(
     version_id
     dl_directory
@@ -31,18 +35,16 @@ version
 my %_field_hash;
 $_field_hash{version} = \@version;
 
-my @FIELDS = (@version);
+@FIELDS = (@version);
+
+}
+use fields @FIELDS;
 
 sub new {
     my ( $class, %arg ) = @_;
 
-    #Bless an anonymous empty hash
-    my $self = bless {}, $class;
-
-    #Fill all of the keys with the fields
-    foreach (@FIELDS) {
-	$self->{$_} = undef;
-    }
+    #bless and restrict the object
+    my $self = fields::new($class);
 
     #Set each attribute that is given as an argument
     foreach my $attr (keys(%arg) ) {

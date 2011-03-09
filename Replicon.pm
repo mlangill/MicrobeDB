@@ -14,6 +14,14 @@ use Carp;
 use MicrobeDB::Gene;
 require MicrobeDB::Search;
 
+my @FIELDS;
+my @replicon;
+my @version;
+my @_db_fields;
+my @_tables;
+my %_field_hash;
+BEGIN {
+
 #All fields in the following arrays correspond to the fields in the database
 
 #Each array represents one table in the database
@@ -70,18 +78,16 @@ my @_other = qw(
   gene_index
 );
 
-my @FIELDS = ( @replicon, @version, @_other );
+@FIELDS = ( @_db_fields, @_other );
+}
+
+use fields  @FIELDS;
 
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#set the gene index to the first of the array
 	$self->gene_index(0);

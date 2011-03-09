@@ -15,11 +15,9 @@ use base ("MicrobeDB::MicrobeDB");
 require MicrobeDB::Replicon;
 require MicrobeDB::GenomeProject;
 require MicrobeDB::Gene;
-#require UpdateLog;
 
-#our $AUTOLOAD;
-
-
+my @FIELDS;
+BEGIN{
 
 #All fields in the following arrays correspond to the fields in the database
 
@@ -38,26 +36,22 @@ my @_db_connect = qw(
   dbh
 );
 
-my @FIELDS = ( @_search, @_db_connect );
+@FIELDS = ( @_search, @_db_connect );
+
+}
+use fields @FIELDS;
 
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Default is not to retrieve the sequence
 	$self->return_seqs(0);
 
 	#Advanced search is turned off by default
 	$self->advanced_where(0);
-
-
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {

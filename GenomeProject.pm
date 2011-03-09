@@ -15,10 +15,14 @@ use Carp;
 
 require MicrobeDB::Replicon;
 
-use MicrobeDB::Search;
+require MicrobeDB::Search;
 
-#our $AUTOLOAD;
+my @FIELDS;
+my @_db_fields;
+my %_field_hash;
+my @_tables;
 
+BEGIN{
 #All fields in the following arrays correspond to the fields in the database
 
 #Each array represents one table in the database
@@ -97,19 +101,18 @@ $_field_hash{genomeproject} = \@genomeproject;
 $_field_hash{taxonomy} = \@taxonomy;
 $_field_hash{version}  = \@version;
 
-my @FIELDS = ( @_db_fields, @_other );
+@FIELDS = ( @_db_fields, @_other );
+}
+
+use fields  @FIELDS;
+
 
 sub new {
 
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#set the replicon index to the first of the array
 	$self->rep_index(0);

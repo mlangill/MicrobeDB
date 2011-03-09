@@ -10,7 +10,12 @@ use strict;
 use warnings;
 use Carp;
 
-#our $AUTOLOAD;
+my @FIELDS;
+my @gene;
+my @_db_fields;
+my @_tables;
+my %_field_hash;
+BEGIN {
 
 #All fields in the following arrays correspond to the fields in the database
 
@@ -62,18 +67,18 @@ my %_field_hash;
 $_field_hash{gene} = \@gene;
 $_field_hash{version}  = \@version;
 
-my @FIELDS = ( @gene, @version );
+@FIELDS = ( @_db_fields );
+
+}
+
+use fields @FIELDS;
+
 
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {
