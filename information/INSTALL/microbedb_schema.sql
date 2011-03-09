@@ -59,6 +59,9 @@ CREATE TABLE `genomeproject` (
   `patho_status` enum('pathogen','nonpathogen','unknown') DEFAULT 'unknown',
   `disease` text,
   `genome_size` float(4,2) DEFAULT '0.00',
+  `chromosome_num` int(10) unsigned DEFAULT '0',
+  `plasmid_num` int(10) unsigned DEFAULT '0',
+  `contig_num` int(10) unsigned DEFAULT '0',
   `pathogenic_in` text,
   `temp_range` enum('unknown','cryophilic','psychrophilic','mesophilic','thermophilic','hyperthermophilic') DEFAULT 'unknown',
   `habitat` enum('unknown','host-associated','aquatic','terrestrial','specialized','multiple') DEFAULT 'unknown',
@@ -94,7 +97,6 @@ CREATE TABLE `replicon` (
   `cds_num` int(10) unsigned DEFAULT '0',
   `gene_num` int(10) unsigned DEFAULT '0',
   `protein_num` int(10) unsigned DEFAULT '0',
-  `genome_id` int(10) unsigned DEFAULT '0',
   `rep_size` int(10) unsigned DEFAULT '0',
   `rna_num` int(10) unsigned DEFAULT '0',
   `file_types` text,
@@ -149,4 +151,4 @@ CREATE TABLE `version` (
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-03-08 15:13:38
+-- Dump completed on 2011-03-09 15:35:59
