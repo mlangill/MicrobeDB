@@ -21,7 +21,9 @@ my @FIELDS;
 my @_db_fields;
 my %_field_hash;
 my @_tables;
-
+my @genomeproject;
+my @taxonomy;
+my @version;
 BEGIN{
 #All fields in the following arrays correspond to the fields in the database
 
@@ -31,7 +33,7 @@ BEGIN{
 #therefore, only a single copy for that field will be stored in the object and all others will be clobbered.
 
 #The array names must be kept the same as the database names (otherwise alter field_names())
-my @genomeproject = qw(
+@genomeproject = qw(
   gpv_id
   gp_id
   version_id
@@ -43,6 +45,9 @@ my @genomeproject = qw(
   patho_status
   disease
   genome_size
+  chromosome_num
+  contig_num
+  plasmid_num
   pathogenic_in
   temp_range
   habitat
@@ -57,7 +62,7 @@ my @genomeproject = qw(
   gpv_directory
 );
 
-my @taxonomy = qw(
+@taxonomy = qw(
   taxon_id
   superkingdom
   phylum
@@ -70,7 +75,7 @@ my @taxonomy = qw(
   synonyms
 );
 
-my @version = qw(
+@version = qw(
   version_id
   dl_directory
   version_date
@@ -96,7 +101,6 @@ my @_other = qw(
   rep_index
 );
 
-my %_field_hash;
 $_field_hash{genomeproject} = \@genomeproject;
 $_field_hash{taxonomy} = \@taxonomy;
 $_field_hash{version}  = \@version;
@@ -209,6 +213,72 @@ sub replicons{
     }
     #return the current content 
     return $self->{replicons};
+}
+
+sub plasmid_num{
+   my ($self,$value)=@_;
+    $self->{plasmid_num} = $value if defined($value);
+    
+    unless(defined($self->{plasmid_num})){
+	$self->plasmid_num($self->_count_plasmid_num());
+    }
+
+    return $self->{plasmid_num};
+}
+
+sub _count_plasmid_num{
+    my ($self)=@_;
+    my $plasmid_num=0;
+    foreach my $rep (@{$self->replicons()}){
+	if($rep->rep_type() eq 'plasmid'){
+	    $plasmid_num++;
+	}   
+    }
+    return $plasmid_num;
+}
+
+sub contig_num{
+   my ($self,$value)=@_;
+    $self->{contig_num} = $value if defined($value);
+    
+    unless(defined($self->{contig_num})){
+	$self->contig_num($self->_count_contig_num());
+    }
+
+    return $self->{contig_num};
+}
+
+sub _count_contig_num{
+    my ($self)=@_;
+    my $contig_num=0;
+    foreach my $rep (@{$self->replicons()}){
+	if($rep->rep_type() eq 'contig'){
+	    $contig_num++;
+	}   
+    }
+    return $contig_num;
+}
+
+sub chromosome_num{
+   my ($self,$value)=@_;
+    $self->{chromosome_num} = $value if defined($value);
+    
+    unless(defined($self->{chromosome_num})){
+	$self->chromosome_num($self->_count_chromosome_num());
+    }
+
+    return $self->{chromosome_num};
+}
+
+sub _count_chromosome_num{
+    my ($self)=@_;
+    my $chromosome_num=0;
+    foreach my $rep (@{$self->replicons()}){
+	if($rep->rep_type() eq 'chromosome'){
+	    $chromosome_num++;
+	}   
+    }
+    return $chromosome_num;
 }
 
 #returns, sets, and finds genome size associated with this genome project
