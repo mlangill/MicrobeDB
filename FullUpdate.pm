@@ -38,6 +38,7 @@ sub new {
 	        $logger->fatal("No download directory specified");
 		croak("A download directory must be supplied");
 	}
+	$logger->info("Using download directory " . $self->dl_directory);
 
 	$self->dbh( $self->_db_connect() );
 
@@ -55,9 +56,6 @@ sub new {
 	    $logger->debug("We had to create a new version");
 	}
 	
-
-	$logger->info("Using download directory " . $self->dl_directory);
-
 	return $self;
 }
 
@@ -70,7 +68,6 @@ sub _new_version {
 	#$self->_delete_unused_versions();
 
 	my $dir = $self->dl_directory();
-	$logger->info("Using download directory $dir");
 
 	#use the date from the download directory name or use the current date
 	my $current_date;
