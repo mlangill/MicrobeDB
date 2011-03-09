@@ -126,7 +126,8 @@ sub parse_gbk {
 	my ($self,$file) = @_;
 
 	my $genome=$self->gpo();
-	my ($IN,$file_name,$ext) = $self->load_file($file);
+	my ($IN,$file_name) = $self->load_file($file);
+	my $file_types  = $self->get_file_type_list((fileparse($file))[1],$file_name);
 	
 	while ( my $seq = <$IN> ) {
 
@@ -137,7 +138,7 @@ sub parse_gbk {
 	    $rep->rep_size($seq->length());
 	    $rep->rep_seq($seq->seq());
 	    $rep->file_name($file_name);
-	    $rep->file_types($ext);
+	    $rep->file_types($file_types);
 	    $rep->rep_accnum($seq->accession_number());
 
 	    my $rep_ginum = $seq->primary_id();
@@ -509,6 +510,17 @@ sub good_rank {
 	}
 }
 
+sub get_file_type_list{
+    my ($self,$dir,$file_name)=@_;
+    my @all_files = glob($dir.'/'.$file_name."*");
+    my @ext;
+    foreach(@all_files){
+	if(/$file_name(.+)/){
+	    push @ext,$1;
+	}
+    }
+    return join(" ",@ext);
+}
 
 
 1;
