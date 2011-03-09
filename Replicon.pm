@@ -29,7 +29,7 @@ BEGIN {
 #Duplicate field names *should* all represent the same piece of data (usually just a foreign key);
 #therefore, only a single copy for that field will be stored in the object and all others will be clobbered.
 
-my @replicon = qw(
+@replicon = qw(
   rpv_id
   gpv_id
   version_id
@@ -41,14 +41,13 @@ my @replicon = qw(
   cds_num
   gene_num
   protein_num
-  genome_id
   rep_size
   rna_num
   file_types
   rep_seq
 );
 
-my @version = qw(
+@version = qw(
   version_id
   dl_directory
   version_date
@@ -56,19 +55,19 @@ my @version = qw(
 );
 
 #puts all fields relavant to the database in a single array and removes duplicates
-my @_db_fields = (@replicon, @version);
+@_db_fields = (@replicon, @version);
 my %temp;
 @temp{@_db_fields} =();
 @_db_fields = keys %temp; 
 
 
 #store the db tablenames that are used in this object
-my @_tables = qw(
+@_tables = qw(
 replicon
 version
 );
 
-my %_field_hash;
+
 $_field_hash{replicon} = \@replicon;
 $_field_hash{version}  = \@version;
 

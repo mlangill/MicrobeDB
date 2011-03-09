@@ -15,6 +15,7 @@ my @gene;
 my @_db_fields;
 my @_tables;
 my %_field_hash;
+my @version;
 BEGIN {
 
 #All fields in the following arrays correspond to the fields in the database
@@ -24,7 +25,7 @@ BEGIN {
 #Duplicate field names *should* all represent the same piece of data (usually just a foreign key);
 #therefore, only a single copy for that field will be stored in the object and all others will be clobbered.
 
-my @gene = qw(
+@gene = qw(
   gene_id
   rpv_id
   version_id
@@ -45,7 +46,7 @@ my @gene = qw(
 );
 
 
-my @version = qw(
+@version = qw(
   version_id
   dl_directory
   version_date
@@ -53,17 +54,17 @@ my @version = qw(
 );
 
 #puts all fields relavant to the database in a single array and removes duplicates
-my @_db_fields = (@gene, @version);
+@_db_fields = (@gene, @version);
 my %temp;
 @temp{@_db_fields} =();
 @_db_fields = keys %temp; 
 
 #store the db tablenames that are used in this object
-my @_tables = qw(
+@_tables = qw(
 gene
 version
 );
-my %_field_hash;
+
 $_field_hash{gene} = \@gene;
 $_field_hash{version}  = \@version;
 
