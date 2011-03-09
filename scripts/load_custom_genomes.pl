@@ -30,9 +30,11 @@ use MicrobeDB::Parse;
 use XML::Simple;
 use LWP::Simple;
 
-my $download_dir; my $logger_cfg;
+my ($download_dir,$logger_cfg,$custom);
 my $res = GetOptions("directory=s" => \$download_dir,
-		     "logger=s" => \$logger_cfg,);
+		     "logger=s" => \$logger_cfg,
+		     "custom"=>\$custom,
+    );
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
@@ -53,8 +55,14 @@ my $new_version = load_microbedb($download_dir);
 
 sub load_microbedb {
 	my ($dl_dir) = @_;
-	my $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir, version_id=>0 );
 
+	my $up_obj;
+	#custom genome
+	if($custom){
+	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir, version_id=>0 );
+	}else{
+	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir);
+	}
 	#do a directory scan
 	my @genome_dir = get_sub_dir($dl_dir);
 	
@@ -65,8 +73,9 @@ sub load_microbedb {
 	    eval {
 		
 		#Parse the data and get the data structure
-		my $gpo = parse_custom_genome($curr_dir);      
-		
+		my $parse =new MicrobeDB::Parse();
+		my $gpo = $parse->parse_genome($curr_dir);
+    		
 		#pass the object to FullUpdate to do the database stuff
 		$up_obj->update_genomeproject($gpo);
 	    };
@@ -82,14 +91,6 @@ sub load_microbedb {
 	
 	return $up_obj->version_id();
 
-}
-
-sub parse_custom_genome{
-    my ($dir)=shift;
-    
-    my $parse =new MicrobeDB::Parse();
-    return $parse->parse_custom_genome($dir);
-    
 }
 
 
