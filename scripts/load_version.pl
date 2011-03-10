@@ -30,11 +30,23 @@ use MicrobeDB::Parse;
 use XML::Simple;
 use LWP::Simple;
 
-my ($download_dir,$logger_cfg,$custom);
+my ($download_dir,$logger_cfg,$custom,$help);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "logger=s" => \$logger_cfg,
 		     "custom"=>\$custom,
+		     "help"=>\$help,
     );
+
+my $usage = "Usage: $0 [--logger logger.conf] [--custom] [--help] -d directory \n";
+my $long_usage = $usage.
+    "-d or --directory <directory> : Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
+-c or --custom : signifies that this directory contains non-downloaded NCBI genomes. Genomes are assigned version_id 0.
+-l or --logger <logger config file>: alternative logger.conf file
+";
+die $long_usage if $help;
+
+die $usage unless $download_dir;
+
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
