@@ -83,13 +83,13 @@ BEGIN{
 );
 
 #puts all fields relavant to the database in a single array and removes duplicates
-my @_db_fields = ( @genomeproject, @taxonomy, @version );
+@_db_fields = ( @genomeproject, @taxonomy, @version );
 my %temp;
 @temp{@_db_fields} = ();
 @_db_fields = keys %temp;
 
 #store the db tablenames that are used in this object
-my @_tables = qw(
+@_tables = qw(
   genomeproject
   taxonomy
   version
@@ -213,6 +213,22 @@ sub replicons{
     }
     #return the current content 
     return $self->{replicons};
+}
+
+sub delete{
+    my($self)=@_;
+    my $dbh=$self->_db_connect();
+    
+    my $gpv_id=$self->gpv_id();
+    if(defined($gpv_id)){
+	#list of tables to delete records from
+	my @tables_to_delete = qw/genomeproject replicon gene/;
+	
+	#delete records corresponding to gpv_id (use QUICK since there are millions of genes)
+	foreach my $curr_table (@tables_to_delete) {
+	    $dbh->do("DELETE QUICK FROM $curr_table WHERE gpv_id = $gpv_id ");
+	}
+    }
 }
 
 sub plasmid_num{
