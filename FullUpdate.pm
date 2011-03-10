@@ -34,11 +34,9 @@ sub new {
 	foreach ( keys(%arg) ) {
 		$self->$_( $arg{$_} );
 	}
-	unless ( defined( $self->dl_directory ) ) {
-	        $logger->fatal("No download directory specified");
-		croak("A download directory must be supplied");
+	if(defined($self->dl_directory)){
+	    $logger->info("Using download directory " . $self->dl_directory);
 	}
-	$logger->info("Using download directory " . $self->dl_directory);
 
 	$self->dbh( $self->_db_connect() );
 
@@ -47,13 +45,15 @@ sub new {
 	    #check if this version is already made
 	    my $so = new MicrobeDB::Search();
 	    my ($version)=$so->table_search('version',{version_id=>$version_id});
+
 	    unless(defined($version)){
-		$self->version_id($self->_new_version());
-		$logger->debug("Making new version because we couldn't find version with version_id: $version_id"); 
+		$logger->debug("Making new version because we couldn't find version with version_id: $version_id");
+		$self->version_id($self->_new_version()); 
 	    }
 	}else{
+	    
+	    $logger->debug("No version_id specified, so going to create a new one.");
 	    $self->version_id( $self->_new_version() );
-	    $logger->debug("We had to create a new version");
 	}
 	
 	return $self;
@@ -68,7 +68,10 @@ sub _new_version {
 	#$self->_delete_unused_versions();
 
 	my $dir = $self->dl_directory();
-
+	unless($dir){
+	    $logger->fatal("A download directory must be supplied if creating a new version");
+	    croak("A download directory must be supplied if creating a new version");
+	}
 	#use the date from the download directory name or use the current date
 	my $current_date;
 	if ( $dir =~ /(\d{4}\-\d{2}\-\d{2})/ ) {
