@@ -162,7 +162,7 @@ sub parse_gbk {
 	    
 	    foreach my $feat ($seq->get_SeqFeatures()) {
 		my $gene_type = $feat->primary_tag();
-		if($gene_type eq 'source'){
+		if($gene_type eq 'source' && ! defined($genome->taxon_id())){
 		    my ($org_name)= $feat->has_tag('organism') ? $feat->get_tag_values('organism') : '';
 		    $genome->org_name($org_name) if $org_name;
 		    my @db_xref = $feat->has_tag('db_xref') ? $feat->get_tag_values('db_xref') : '';
