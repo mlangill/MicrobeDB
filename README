@@ -14,6 +14,14 @@ A presentation providing more information about MicrobeDB is online at: http://t
 For installation information see:
 information/INSTALL/INSTALL
 
+###REQUIREMENTS###
+MySQL
+Perl
+Perl Modules
+-BioPerl
+-Parallel::ForkManager
+-Log::Log4perl
+
 ###QUICK START GUIDE###
 
 1)Connecting directly to MySQL database
