@@ -15,6 +15,7 @@ use base ("MicrobeDB::MicrobeDB");
 require MicrobeDB::Replicon;
 require MicrobeDB::GenomeProject;
 require MicrobeDB::Gene;
+require MicrobeDB::Version;
 
 my @FIELDS;
 BEGIN{
