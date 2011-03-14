@@ -17,7 +17,6 @@ use Cwd qw(abs_path getcwd);
 use Time::localtime;
 
 my $prefix = 'Bacteria';
-my $clean = 0;
 
 my $download_parent_dir; my $logger_cfg;
 my $res = GetOptions("directory=s" => \$download_parent_dir,
@@ -74,11 +73,7 @@ $logger->info("Moving symlink for parent directory");
 unlink "$download_parent_dir/$prefix" if ( -l "$download_parent_dir/$prefix");
 symlink "$download_dir", "$download_parent_dir/$prefix" or $logger->error("Unable to create symlink from $download_dir to $download_parent_dir/$prefix\n");
 
-&cleandirectory($cur_time, $download_parent_dir) if($clean);
-
 $logger->info("Finished downloading genomes from NCBI.\n");
-
-#die "The download directory does not exist: $download_dir\nSomething wrong with download?\n" unless -d $download_dir;
 
 #unpack genome files
 $logger->info("Unpacking genome files");
@@ -101,28 +96,3 @@ if($?) {
 
 print "Finished parsing and loading each genome into NCBI \n\n";
 $logger->info("Finished parsing and loading each genome into NCBI");
-
-exit;
-
-#delete backup directories that are older than 90 days
-sub cleandirectory {
-    my $curdate = shift;
-    my $dir     = shift;
-    $logger->info("Cleaning old downloads in $dir");
-    opendir( DIR, $dir );
-    my $file;
-    while ( defined( $file = readdir(DIR) ) ) {
-        next if $file =~ /^\.\.?$/;
-        if ( -d $file ) {
-            my $filestat        = stat($file);
-            my $filechangeinode = $filestat->ctime;
-            my $filechangedate  = localtime($filechangeinode);
-
-            #90 days has 7776000 seconds
-            if ( $curdate - $filechangedate > 7776000 ) {
-		$logger->debug("Deleting $file");
-                system("rm -rf $file");
-            }
-        }
-    }
-}
