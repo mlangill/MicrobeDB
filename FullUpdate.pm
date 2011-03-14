@@ -9,7 +9,6 @@ use strict;
 use warnings;
 use Carp;
 
-#our $AUTOLOAD;
 
 use MicrobeDB::GenomeProject;
 use MicrobeDB::Replicon;
@@ -64,9 +63,6 @@ sub _new_version {
 	my ($self) = @_;
 	my $dbh = $self->dbh();
 
-	#remove all old unused versions
-	#$self->_delete_unused_versions();
-
 	my $dir = $self->dl_directory();
 	unless($dir){
 	    $logger->fatal("A download directory must be supplied if creating a new version");
@@ -109,7 +105,7 @@ sub _new_version {
 
 #Looks through the version table for any versions that are not being used
 #Therefore, used_by field must be set; otherwise all data is deleted
-sub _delete_unused_versions {
+sub delete_unused_versions {
 	my ($self) = @_;
 	my $so     = new MicrobeDB::Search();
 	my @vo     = $so->table_search('version');
@@ -117,13 +113,23 @@ sub _delete_unused_versions {
 	#order by version id so that we can keep the most recent version
 	my @sort_versions = sort { $a->{version_id} <=> $b->{version_id} } @vo;
 
-	#remove the latest version (highest at end of array) from the version that may be deleted
-	pop(@sort_versions);
+	$logger->info("MicrobeDB contains scalar(@sort_versions) versions. Scanning for versions that need to be deleted.");
+
+	#remove the latest 2 versions (highest at end of array) from the versions that may be deleted
+	#i.e. keep the 2 most recent versions
+	my $ver1 = pop(@sort_versions);
+	my $ver2 = pop(@sort_versions);
+	$logger->info("Keeping the two most recent versions; $ver1->{version_id} and $ver2->{version_id}");
 
 	foreach my $curr_vo (@sort_versions) {
-		unless ( defined( $curr_vo->{used_by} ) ) {
-			$self->delete_version( $curr_vo->{version_id} );
-		}
+	    if($curr_vo->{version_id} == 0){
+		$logger->info("Not deleting version $curr_vo->{version_id} , this is the custom genomes version.");
+		next;
+	    }elsif(defined($curr_vo->{used_by})){
+		$logger->info("Not deleting version $curr_vo->{version_id} , being used by $curr_vo->{used_by} .");
+	    }else{
+		$logger->info("Deleting version $curr_vo->{version_id} .");
+		$self->delete_version( $curr_vo->{version_id});
 	}
 }
 
@@ -222,8 +228,6 @@ sub _insert_record {
 	#Makes a string of ?'s so we can bind to them later
 	#Note: always bind the values because it looks after converting undef to null
 	my $bind = join( ',', ('?') x @values );
-
-	#my $sql = "INSERT IGNORE $table_name ($fields) VALUES ($bind)";
 
 	#Use REPLACE instead of INSERT so this method can be used for both inserts or replacements
 	my $sql = "REPLACE $table_name ($fields) VALUES ($bind)";
