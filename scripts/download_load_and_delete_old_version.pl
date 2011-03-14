@@ -19,9 +19,38 @@ use Time::localtime;
 
 my $prefix = 'Bacteria';
 
-my $download_parent_dir; my $logger_cfg;
+my ($download_parent_dir,$logger_cfg,$help,$parallel);;
 my $res = GetOptions("directory=s" => \$download_parent_dir,
-		     "logger=s" => \$logger_cfg,);
+		     "parallel:i"=>\$parallel,
+		     "logger=s" => \$logger_cfg,
+		     "help"=>\$help,
+    );
+
+my $usage = "Usage: $0 [-p <num_cpu>][-l <logger.conf>] [-h] -d directory \n";
+my $long_usage = $usage.
+    "Options:
+-d or --directory <directory> : Mandatory. A directory where genomes will be downloaded and stored (e.g. ~/ncbi_genomes) 
+-p or --parallel: Using this option without a value will use all cpus, while giving it a value will limit to that many cpus. Without option only one cpu is used. 
+-l or --logger <logger config file>: alternative logger.conf file
+-h or --help : Show more information for usage.
+";
+die $long_usage if $help;
+
+die $usage unless $download_parent_dir;
+
+
+my $cpu_count=1;
+
+#if the option is set
+if(defined($parallel)){
+    #option is set but with no value then use the max number of proccessors
+    if($parallel ==0){
+	$cpu_count=$ENV{NUMBER_OF_PROCESSORS};
+    }else{
+	$cpu_count=$parallel;
+    }
+}
+
 
 # Clean up the download path
 $download_parent_dir .= '/' unless $download_parent_dir =~ /\/$/;
@@ -79,7 +108,12 @@ $logger->info("Finished downloading genomes from NCBI.\n");
 #unpack genome files
 $logger->info("Unpacking genome files");
 print "Unpacking genome files\n\n";
-system("$path/unpack_version.pl -l logger.conf -p -d $download_dir");
+my $unpack_cmd="$path/unpack_version.pl -l logger.conf -d $download_dir";
+if(defined($parallel)){
+    $unpack_cmd .=" -p $cpu_count";
+}
+
+system($unpack_cmd);
 if($?) {
     $logger->fatal("Error when unpacking the new version: $!");
     die;
@@ -89,7 +123,12 @@ print "Finished unpacking genome files\n\n";
 #Load all genomes into microbedb as a new version
 $logger->info("Parsing and loading each genome into NCBI");
 print "Parsing and loading each genome into NCBI \n";
-system("$path/load_version.pl -l logger.conf -p -d $download_dir ");
+my $load_cmd = "$path/load_version.pl -l logger.conf -d $download_dir";
+if(defined($parallel)){
+    $load_cmd .=" -p $cpu_count";
+}
+
+system($load_cmd);
 if($?) {
     $logger->fatal("Error loading the new version: $!");
     die;
