@@ -4,6 +4,7 @@
 #1) All genomes are downloaded from NCBI using Aspera (default) or FTP (download_version.pl)
 #2) Downloaded genomes are then extracted (unpack_version.pl)
 #3) All genomes are parsed and loaded into microbedb (load_version.pl)
+#4) Old versions in MicrobeDB are removed (note: custom version, saved versions, and last 2 most recent versions are never deleted)
 
 #Note: This script can be set up in a cron job to run weekly/monthly/etc. Previous versions are left untouched and all data is re-downloaded, re-unpacked, and re-loaded into the database. Use "delete_version.pl" to remove these old versions.
 
@@ -96,3 +97,13 @@ if($?) {
 
 print "Finished parsing and loading each genome into NCBI \n\n";
 $logger->info("Finished parsing and loading each genome into NCBI");
+
+#Remove old versions from MicrobeDB
+$logger->info("Old versions in MicrobeDB are being deleted (note: the custom version, saved versions, and last 2 most recent versions are never deleted)");
+system("$path/delete_version.pl -a -l logger.conf");
+if($?) {
+    $logger->fatal("Error cleaning up old versions of MicrobeDB: $!");
+    die;
+}
+
+$logger->info("Finished deleting old versions of MicrobeDB");

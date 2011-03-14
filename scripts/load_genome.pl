@@ -22,7 +22,6 @@ chdir($path);
 
 #relative link to the api
 use lib "../../";
-use lib "./";
 use MicrobeDB::FullUpdate;
 use MicrobeDB::Search;
 use MicrobeDB::Parse;

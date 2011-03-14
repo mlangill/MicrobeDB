@@ -103,35 +103,6 @@ sub _new_version {
 
 }
 
-#Looks through the version table for any versions that are not being used
-#Therefore, used_by field must be set; otherwise all data is deleted
-sub delete_unused_versions {
-	my ($self) = @_;
-	my $so     = new MicrobeDB::Search();
-	my @vo     = $so->table_search('version');
-
-	#order by version id so that we can keep the most recent version
-	my @sort_versions = sort { $a->{version_id} <=> $b->{version_id} } @vo;
-
-	$logger->info("MicrobeDB contains scalar(@sort_versions) versions. Scanning for versions that need to be deleted.");
-
-	#remove the latest 2 versions (highest at end of array) from the versions that may be deleted
-	#i.e. keep the 2 most recent versions
-	my $ver1 = pop(@sort_versions);
-	my $ver2 = pop(@sort_versions);
-	$logger->info("Keeping the two most recent versions; $ver1->{version_id} and $ver2->{version_id}");
-
-	foreach my $curr_vo (@sort_versions) {
-	    if($curr_vo->{version_id} == 0){
-		$logger->info("Not deleting version $curr_vo->{version_id} , this is the custom genomes version.");
-		next;
-	    }elsif(defined($curr_vo->{used_by})){
-		$logger->info("Not deleting version $curr_vo->{version_id} , being used by $curr_vo->{used_by} .");
-	    }else{
-		$logger->info("Deleting version $curr_vo->{version_id} .");
-		$self->delete_version( $curr_vo->{version_id});
-	}
-}
 
 #takes a GenomeProject object and adds it to the database including embedded Replicons and Genes
 sub update_genomeproject {
@@ -243,82 +214,6 @@ sub _insert_record {
 
 }
 
-#Deletes a complete microbedb version (from all tables) AND removes flat files unless save_files is set to 1
-sub delete_version {
-	my ( $self, $version_id, $save_files ) = @_;
-
-	my $dbh = $self->dbh;
-
-	#check the version table to make sure no one is using the data
-	my $so = new MicrobeDB::Search();
-	my ($vo) = $so->table_search( 'version', { version_id => $version_id } );
-	croak "Version id: $version_id was not found in version table!" unless defined($vo);
-	my $being_used   = $vo->{used_by};
-	my $dl_directory = $vo->{dl_directory};
-	if ($being_used) {
-		warn "Version $version_id is being used by $being_used. This version will NOT be deleted!";
-		return;
-	}
-
-	#list of tables to delete records from
-	my @tables_to_delete = qw/genomeproject replicon gene version/;
-
-	#delete records corresponding to the version id in each table (use QUICK since there are millions of genes)
-	foreach my $curr_table (@tables_to_delete) {
-		my $sql = "DELETE QUICK FROM $curr_table WHERE version_id = $version_id ";
-
-		#Prepare the statement
-		my $sth = $dbh->prepare($sql);
-
-		#call the statement
-		$sth->execute();
-
-	}
-	#optimize the tables (needed to reduce "overhead" in the tables after large deletes, especially when using DELETE QUICK)
-	$dbh->do("OPTIMIZE TABLE ".join(",",@tables_to_delete));
-
-	unless ($save_files) {
-
-		#delete the actual files
-		`rm -rf $dl_directory`;
-	}
-
-}
-
-sub save_version {
-	my ( $self, $version_id, $name ) = @_;
-
-	return unless ($name);
-	return unless ($version_id);
-
-	my $so = new MicrobeDB::Search();
-	my ($vo) = $so->table_search( 'version', { version_id => $version_id } );
-	unless ( defined($vo) ) {
-		return;
-	}
-
-	my $dbh = $self->dbh;
-
-	my $sql;
-	if ( $name eq 'null' ) {
-		$sql = "UPDATE version SET used_by=null WHERE version_id = $version_id LIMIT 1";
-	} else {
-
-		#Check if someone else is already using this version
-		if ( defined( $vo->{'used_by'} ) ) {
-			$name = join( ', ', $vo->{'used_by'}, $name );
-		}
-
-		$sql = "UPDATE version SET used_by='$name' WHERE version_id = $version_id LIMIT 1";
-	}
-
-	#
-	my $sth = $dbh->prepare($sql);
-
-	#call the statement
-	return $sth->execute();
-
-}
 
 1;
 
