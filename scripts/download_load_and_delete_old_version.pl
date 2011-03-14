@@ -79,7 +79,7 @@ $logger->info("Finished downloading genomes from NCBI.\n");
 #unpack genome files
 $logger->info("Unpacking genome files");
 print "Unpacking genome files\n\n";
-system("$path/unpack_version.pl $download_dir");
+system("$path/unpack_version.pl -l logger.conf -p -d $download_dir");
 if($?) {
     $logger->fatal("Error when unpacking the new version: $!");
     die;
@@ -89,7 +89,7 @@ print "Finished unpacking genome files\n\n";
 #Load all genomes into microbedb as a new version
 $logger->info("Parsing and loading each genome into NCBI");
 print "Parsing and loading each genome into NCBI \n";
-system("$path/load_version.pl -d $download_dir -l logger.conf");
+system("$path/load_version.pl -l logger.conf -p -d $download_dir ");
 if($?) {
     $logger->fatal("Error loading the new version: $!");
     die;

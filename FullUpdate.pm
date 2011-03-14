@@ -37,7 +37,6 @@ sub new {
 	    $logger->info("Using download directory " . $self->dl_directory);
 	}
 
-	$self->dbh( $self->_db_connect() );
 
 	if(defined($self->version_id())){
 	    my $version_id=$self->version_id();
@@ -61,7 +60,7 @@ sub new {
 #Creates a new record in the version table and returns the version number
 sub _new_version {
 	my ($self) = @_;
-	my $dbh = $self->dbh();
+	my $dbh = $self->_db_connect();
 
 	my $dir = $self->dl_directory();
 	unless($dir){
@@ -107,6 +106,8 @@ sub _new_version {
 #takes a GenomeProject object and adds it to the database including embedded Replicons and Genes
 sub update_genomeproject {
 	my ( $self, $gpo ) = @_;
+
+	$self->dbh($self->_db_connect());
 
 	#Set the version id
 	$gpo->version_id( $self->version_id );

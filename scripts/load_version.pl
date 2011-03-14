@@ -13,6 +13,7 @@ use Getopt::Long;
 use LWP::Simple;
 use Log::Log4perl;
 use Cwd qw(abs_path getcwd);
+use Parallel::ForkManager;
 
 BEGIN{
 # Find absolute path of script
@@ -30,22 +31,41 @@ use MicrobeDB::Parse;
 use XML::Simple;
 use LWP::Simple;
 
-my ($download_dir,$logger_cfg,$custom,$help);
+my ($download_dir,$logger_cfg,$custom,$help,$parallel);
 my $res = GetOptions("directory=s" => \$download_dir,
+		     "parallel:i"=>\$parallel,
 		     "logger=s" => \$logger_cfg,
 		     "custom"=>\$custom,
 		     "help"=>\$help,
     );
 
-my $usage = "Usage: $0 [--logger logger.conf] [--custom] [--help] -d directory \n";
+my $usage = "Usage: $0 [-p <num_cpu>][-l <logger.conf>] [-c] [-h] -d directory \n";
 my $long_usage = $usage.
-    "-d or --directory <directory> : Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
+    "Options:
+-d or --directory <directory> : Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
 -c or --custom : signifies that this directory contains non-downloaded NCBI genomes. Genomes are assigned version_id 0.
+-p or --parallel: Using this option without a value will use all cpus, while giving it a value will limit to that many cpus. Without option only one cpu is used. 
 -l or --logger <logger config file>: alternative logger.conf file
+-h or --help : Show more information for usage.
 ";
 die $long_usage if $help;
 
 die $usage unless $download_dir;
+
+my $cpu_count=1;
+
+#if the option is set
+if(defined($parallel)){
+    #option is set but with no value then use the max number of proccessors
+    if($parallel ==0){
+	$cpu_count=$ENV{NUMBER_OF_PROCESSORS};
+    }else{
+	$cpu_count=$parallel;
+    }
+}
+
+$logger->info("Parallel proccessing the loading step with $cpu_count proccesses.") if (defined($parallel);
+my $pm = new Parallel::ForkManager($cpu_count);
 
 
 # Set the logger config to a default if none is given
@@ -80,6 +100,7 @@ sub load_microbedb {
 	
 	my $so = new MicrobeDB::Search();
 	foreach my $curr_dir (@genome_dir) {
+	    my $pid = $pm->start and next; 
 	    $logger->info("Working on $curr_dir");
 	    
 	    eval {
@@ -96,8 +117,9 @@ sub load_microbedb {
 	    if ($@) {
 		warn "Couldn't add the following to microbedb: $curr_dir ! Reason: $@";
 		$logger->error("Couldn't add the following to microbedb: $curr_dir ! Reason: $@");
-		next;
+	      
 	    }
+	    $pm->finish;
 	    
 	}
 	
