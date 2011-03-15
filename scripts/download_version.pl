@@ -101,6 +101,7 @@ sub runascp{
     my $count  = 0;
     while ( $status != 0 && $count < 10 ) {
     	my $ascp_cmd = $parameters.$remotedir.$remotefile. " $localdir";
+	$logger->info("Downloading file: $remotefile");
 	$logger->debug($ascp_cmd);
 	$status = system($ascp_cmd);
 
@@ -179,16 +180,26 @@ sub runwget {
 
 sub get_genomeprojfiles {
     my ($localdir) = @_;
-    my $content    = get('http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected');
-    my $content2   = get('http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected');
-    open( ORGINFO, ">$localdir/NCBI_orginfo.txt" )
-      or die "can't create file $localdir/NCBI_orginfo.txt";
-    open( COMPGEN, ">$localdir/NCBI_completegenomes.txt" )
-      or die "can't create file $localdir/NCBI_completegenomes.txt";
-    print ORGINFO $content;
-    print COMPGEN $content2;
-    close ORGINFO;
-    close COMPGEN;
+
+    my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
+    my $ncbi_orginfo_file=$localdir."/NCBI_orginfo.txt";
+
+    $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_orginfo_url");
+
+    my $ncbi_orginfo_content    = get($ncbi_orginfo_url);
+    open( my $ORGINFO,'>', $ncbi_orginfo_file ) or die "Can't create file $ncbi_orginfo_file";
+    print $ORGINFO $ncbi_orginfo_content;
+    close $ORGINFO;
+
+    my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
+    my $ncbi_compgen_file=$localdir."/NCBI_completegenomes.txt";
+
+    $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url";
+
+    my $ncbi_compgen_content   = get($ncbi_compgen_url);
+    open( my $COMPGEN, '>',$ncbi_compgen_file ) or die "can't create file $ncbi_compgen_file";
+    print $COMPGEN $ncbi_compgen_content;
+    close $COMPGEN;
 }
 
 sub writetolog {
