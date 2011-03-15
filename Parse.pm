@@ -102,7 +102,7 @@ sub parse_taxonomy{
     my $so = new MicrobeDB::Search;
     my ($taxon)    = $so->table_search( 'taxonomy', { taxon_id => $taxon_id } );
     #set the 
-    unless ( $taxon && $taxon->{'superkindom'} ) {
+    if (! (defined($taxon) && $taxon->{'superkindom'}) ) {
 	eval {
 	    my ( $lineage, %lineage_full ) = get_taxonomy( $taxon_id );
 	    
@@ -429,7 +429,7 @@ sub load_file{
 sub get_taxonomy {
 	my ($taxon_id) = @_;
 	my $eutil      = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?';
-	my $email      = 'mlangill@sfu.ca';
+	my $email      = 'morgan.g.i.langille@gmail.com';
 	my $tool_name  = "microbedb";
 
 	my $efetch = "$eutil" . "db=taxonomy&id=$taxon_id&report=xml&mode=text&email=$email&tool=$tool_name";
