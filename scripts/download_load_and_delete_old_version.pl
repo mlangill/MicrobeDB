@@ -16,6 +16,7 @@ use Getopt::Long;
 use Log::Log4perl;
 use Cwd qw(abs_path getcwd);
 use Time::localtime;
+use Sys::CPU;
 
 my $prefix = 'Bacteria';
 
@@ -45,7 +46,7 @@ my $cpu_count=1;
 if(defined($parallel)){
     #option is set but with no value then use the max number of proccessors
     if($parallel ==0){
-	$cpu_count=$ENV{NUMBER_OF_PROCESSORS};
+	$cpu_count=Sys::CPU::cpu_count();
     }else{
 	$cpu_count=$parallel;
     }
@@ -76,8 +77,7 @@ die "$download_parent_dir is not a valid directory. Please supply a directory wh
 
 $logger->debug("Path to script is: $path");
 
-$logger->info("Running script download_load_delete_old_version.pl\n");
-$logger->info("Downloading all genomes from NCBI.(this takes a awhile, ~2-4hours)\n");
+$logger->debug("Running script download_load_delete_old_version.pl\n");
 
 # Make the new download directory where this version will go
 my $cur_time = localtime;
@@ -85,12 +85,12 @@ my ( $DAY, $MONTH, $YEAR ) = ( $cur_time->mday, $cur_time->mon + 1, $cur_time->y
 if ( $DAY < 10 )   { $DAY   = '0' . $DAY; }
 if ( $MONTH < 10 ) { $MONTH = '0' . $MONTH; }
 my $download_dir = $download_parent_dir . "$prefix\_$YEAR\-$MONTH\-$DAY";
-$logger->info("Making download dir $download_dir");
+$logger->info("Making download directory: $download_dir");
 `mkdir $download_dir` unless -d $download_dir;
 `mkdir $download_dir/log` unless -d "$download_dir/log";
 
 #Download all genomes from NCBI
-$logger->info("Download all genomes using download_version");
+$logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; ~1-4hours)\n");
 my $cmd = "$path/download_version.pl -d $download_dir";
 $cmd .= " -l $logger_cfg" if(-f $logger_cfg);
 system($cmd);
@@ -107,7 +107,6 @@ $logger->info("Finished downloading genomes from NCBI.\n");
 
 #unpack genome files
 $logger->info("Unpacking genome files");
-print "Unpacking genome files\n\n";
 my $unpack_cmd="$path/unpack_version.pl -l logger.conf -d $download_dir";
 if(defined($parallel)){
     $unpack_cmd .=" -p $cpu_count";
@@ -118,11 +117,10 @@ if($?) {
     $logger->fatal("Error when unpacking the new version: $!");
     die;
 }
-print "Finished unpacking genome files\n\n";
+$logger->info("Finished unpacking genome files");
 
 #Load all genomes into microbedb as a new version
 $logger->info("Parsing and loading each genome into NCBI");
-print "Parsing and loading each genome into NCBI \n";
 my $load_cmd = "$path/load_version.pl -l logger.conf -d $download_dir";
 if(defined($parallel)){
     $load_cmd .=" -p $cpu_count";
@@ -134,7 +132,6 @@ if($?) {
     die;
 }
 
-print "Finished parsing and loading each genome into NCBI \n\n";
 $logger->info("Finished parsing and loading each genome into NCBI");
 
 #Remove old versions from MicrobeDB

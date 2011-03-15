@@ -6,7 +6,9 @@ use strict;
 use warnings;
 use Parallel::ForkManager;
 use Getopt::Long;
-
+use Log::Log4perl;
+use Sys::CPU;
+  
 my ($download_dir,$logger_cfg,$help,$parallel);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "parallel:i"=>\$parallel,
@@ -32,6 +34,9 @@ $logger_cfg = "logger.conf" unless($logger_cfg);
 Log::Log4perl::init($logger_cfg);
 my $logger = Log::Log4perl->get_logger;
 
+# Clean up the download path
+$download_dir .= '/' unless $download_dir =~ /\/$/;
+
 
 my $cpu_count=1;
 
@@ -39,7 +44,7 @@ my $cpu_count=1;
 if(defined($parallel)){
     #option is set but with no value then use the max number of proccessors
     if($parallel ==0){
-	$cpu_count=$ENV{NUMBER_OF_PROCESSORS};
+	$cpu_count= Sys::CPU::cpu_count();
     }else{
 	$cpu_count=$parallel;
     }
@@ -50,12 +55,13 @@ my $pm = new Parallel::ForkManager($cpu_count);
 
 
 chdir($download_dir);
-my @compressed_files = glob($download_dir .'/all.*');
+my @compressed_files = glob($download_dir .'all.*.tar.gz');
 for my $tarball (@compressed_files){
-    $logger->info("Unpacking $tarball");
     my $pid = $pm->start and next; 
+    $logger->info("Unpacking $tarball");
     my $status= system("tar xzf $tarball");
     unlink($tarball) if $status == 0;
     $pm->finish;
-
 }
+$pm->wait_all_children;
+$logger->info("All done unpacking.");

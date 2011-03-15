@@ -14,6 +14,7 @@ use LWP::Simple;
 use Log::Log4perl;
 use Cwd qw(abs_path getcwd);
 use Parallel::ForkManager;
+use Sys::CPU;
 
 BEGIN{
 # Find absolute path of script
@@ -50,22 +51,7 @@ my $long_usage = $usage.
 ";
 die $long_usage if $help;
 
-die $usage unless $download_dir;
-
-my $cpu_count=1;
-
-#if the option is set
-if(defined($parallel)){
-    #option is set but with no value then use the max number of proccessors
-    if($parallel ==0){
-	$cpu_count=$ENV{NUMBER_OF_PROCESSORS};
-    }else{
-	$cpu_count=$parallel;
-    }
-}
-
-$logger->info("Parallel proccessing the loading step with $cpu_count proccesses.") if (defined($parallel);
-my $pm = new Parallel::ForkManager($cpu_count);
+die $usage unless $download_dir && -d $download_dir;
 
 
 # Set the logger config to a default if none is given
@@ -76,11 +62,22 @@ my $logger = Log::Log4perl->get_logger;
 # Clean up the download path
 $download_dir .= '/' unless $download_dir =~ /\/$/;
 
-unless ( $download_dir && -d $download_dir) {
-	print "Input the directory containing your custom genomes\n";
-	$logger->fatal("Download directory not valid: $download_dir");
-	exit;
+
+my $cpu_count=1;
+
+#if the option is set
+if(defined($parallel)){
+    #option is set but with no value then use the max number of proccessors
+    if($parallel ==0){
+	$cpu_count=Sys::CPU::cpu_count();
+    }else{
+	$cpu_count=$parallel;
+    }
 }
+
+$logger->info("Parallel proccessing the loading step with $cpu_count proccesses.") if defined($parallel);
+my $pm = new Parallel::ForkManager($cpu_count);
+
 
 #Load the genome into microbedb as a custom genome (version_id==0)
 my $new_version = load_microbedb($download_dir);
@@ -122,7 +119,7 @@ sub load_microbedb {
 	    $pm->finish;
 	    
 	}
-	
+	$pm->wait_all_children;
 	return $up_obj->version_id();
 
 }

@@ -21,6 +21,7 @@ Perl Modules
 -BioPerl
 -Parallel::ForkManager
 -Log::Log4perl
+-Sys::CPU
 
 ###QUICK START GUIDE###
 
