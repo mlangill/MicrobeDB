@@ -60,8 +60,14 @@ for my $tarball (@compressed_files){
     my $pid = $pm->start and next; 
     $logger->info("Unpacking $tarball");
     my $status= system("tar xzf $tarball");
-    unlink($tarball) if $status == 0;
-    $pm->finish;
+    if($status){
+	$logger->fatal("Unpacking of $tarball failed!");
+	die;
+    }else{
+	$logger->info("Done unpacking and now deleting $tarball");
+	unlink($tarball);
+    }
+     $pm->finish;
 }
 $pm->wait_all_children;
 $logger->info("All done unpacking.");
