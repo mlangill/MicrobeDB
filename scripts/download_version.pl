@@ -63,7 +63,6 @@ sub NCBI_aspera{
 #    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
     my @file_types = qw/faa ffn fna frn gbk gff rpt/;
     my $parameters = '';
-    my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
     my $logdir = $download_dir . 'log/';
@@ -100,14 +99,21 @@ sub runascp{
     my ( $parameters, $remotedir,$remotefile,$localdir ) = @_;
     my $status = 1;
     my $count  = 0;
-    while ( $status != 0 && $count < 5 ) {
+    while ( $status != 0 && $count < 10 ) {
     	my $ascp_cmd = $parameters.$remotedir.$remotefile. " $localdir";
-	print $ascp_cmd;
+	$logger->debug($ascp_cmd);
 	$status = system($ascp_cmd);
 
-        sleep 120 unless $status == 0;
+	if($status){
+	    $logger->warn("Problem with downloading file: $remotefile".". Waiting 60 seconds before attempting again.");
+	    sleep 60;
+	}
         $count++;
-    
+    }
+
+    if($status){
+	$logger->fatal("Could not download file: $remotefile".", after $count attempts!");
+	die;
     }
 }
     
@@ -118,7 +124,6 @@ sub NCBIftp_wget3 {
     my $host       = 'ftp://ftp.ncbi.nih.gov';
     my $remotedir  = 'genomes/Bacteria/all.*';
     my $parameters = '';
-    my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
     my $logdir = $localdir . '/log/';

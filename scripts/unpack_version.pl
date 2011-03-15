@@ -45,7 +45,7 @@ if(defined($parallel)){
     }
 }
 
-$logger->info("Parallel proccessing the unpacking step with $cpu_count proccesses.") if (defined($parallel);
+$logger->info("Parallel proccessing the unpacking step with $cpu_count proccesses.") if defined($parallel);
 my $pm = new Parallel::ForkManager($cpu_count);
 
 
