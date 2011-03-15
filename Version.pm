@@ -178,6 +178,7 @@ sub delete_version {
 
 	#delete records corresponding to the version id in each table (use QUICK since there are millions of genes)
 	foreach my $curr_table (@tables_to_delete) {
+	    $logger->debug("Deleting version: $version_id from $curr_table table");
 		my $sql = "DELETE QUICK FROM $curr_table WHERE version_id = $version_id ";
 
 		#Prepare the statement
@@ -187,11 +188,12 @@ sub delete_version {
 		$sth->execute();
 
 	}
+	$logger->debug("Optimizing all microbedb tables");
 	#optimize the tables (needed to reduce "overhead" in the tables after large deletes, especially when using DELETE QUICK)
 	$dbh->do("OPTIMIZE TABLE ".join(",",@tables_to_delete));
 
 	unless ($save_files) {
-	    $logger->info("Deleting directory: $dl_directory");
+	    $logger->debug("Deleting directory: $dl_directory");
 		#delete the actual files
 		`rm -rf $dl_directory`;
 	}
