@@ -1,3 +1,21 @@
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 package MicrobeDB::FullUpdate;
 
 #inherit common methods from the MicroDB class
@@ -9,14 +27,16 @@ use strict;
 use warnings;
 use Carp;
 
-#our $AUTOLOAD;
 
 use MicrobeDB::GenomeProject;
 use MicrobeDB::Replicon;
 use MicrobeDB::Gene;
 use MicrobeDB::Search;
 
-my @FIELDS = qw(dl_directory version_id dbh);
+my @FIELDS;
+BEGIN { @FIELDS = qw(dl_directory version_id dbh); }
+
+use fields  @FIELDS;
 
 my $logger = Log::Log4perl->get_logger();
 
@@ -24,40 +44,47 @@ sub new {
 
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {
 		$self->$_( $arg{$_} );
 	}
-	unless ( defined( $self->dl_directory ) ) {
-	        $logger->fatal("No download directory specified");
-		croak("A download directory must be supplied");
+	if(defined($self->dl_directory)){
+	    $logger->info("Using download directory " . $self->dl_directory);
 	}
 
-	$logger->info("Using download directory " . $self->dl_directory);
 
-	$self->dbh( $self->_db_connect() );
+	if(defined($self->version_id())){
+	    my $version_id=$self->version_id();
+	    #check if this version is already made
+	    my $so = new MicrobeDB::Search();
+	    my ($version)=$so->table_search('version',{version_id=>$version_id});
+
+	    unless(defined($version)){
+		$logger->debug("Making new version because we couldn't find version with version_id: $version_id");
+		$self->version_id($self->_new_version()); 
+	    }
+	}else{
+	    
+	    $logger->debug("No version_id specified, so going to create a new one.");
+	    $self->version_id( $self->_new_version() );
+	}
+	
 	return $self;
 }
 
 #Creates a new record in the version table and returns the version number
 sub _new_version {
 	my ($self) = @_;
-	my $dbh = $self->dbh();
-
-	#remove all old unused versions
-	#$self->_delete_unused_versions();
+	my $dbh = $self->_db_connect();
 
 	my $dir = $self->dl_directory();
-	$logger->info("Using download directory $dir");
-
+	unless($dir){
+	    $logger->fatal("A download directory must be supplied if creating a new version");
+	    croak("A download directory must be supplied if creating a new version");
+	}
 	#use the date from the download directory name or use the current date
 	my $current_date;
 	if ( $dir =~ /(\d{4}\-\d{2}\-\d{2})/ ) {
@@ -66,58 +93,45 @@ sub _new_version {
 		$current_date = `date +%F`;
 		chomp($current_date);
 	}
-	$logger->info("Using datestamp $current_date");
+	$logger->debug("Using datestamp $current_date");
 
+	my $version_id = $self->version_id();
 	#Create new version record
-	my $sth = $dbh->prepare( qq{INSERT version (dl_directory,version_date)VALUES ('$dir', '$current_date')} );
+	my $sth;
+	if(defined($version_id)){
+	    $sth = $dbh->prepare( qq{INSERT version (version_id,dl_directory,version_date)VALUES ($version_id,'$dir', '$current_date')} );
+	}else{
+	    $sth = $dbh->prepare( qq{INSERT version (dl_directory,version_date)VALUES ('$dir', '$current_date')} );
+	}
+	#Create new version record
 	$sth->execute();
 
 	#This should return the auto_increment number that was just updated
 	my $version = $dbh->last_insert_id( undef, undef, undef, undef );
-	$logger->info("Created new MicrobeDB version $version");
 
+	#If it is the custom version (i.e. version_id ==0) then we need to update the insert since auto increment gives a new id if set to 0
+	if(defined($version_id)&& $version_id ==0){
+	    $dbh->do(qq{UPDATE version SET version_id=0 where version_id=$version});
+	    $version=$version_id;
+	};
+	$logger->info("Created new MicrobeDB version $version");
+	
 	return $version;
 
 }
 
-#Looks through the version table for any versions that are not being used
-#Therefore, used_by field must be set; otherwise all data is deleted
-sub _delete_unused_versions {
-	my ($self) = @_;
-	my $so     = new MicrobeDB::Search();
-	my @vo     = $so->table_search('version');
-
-	#order by version id so that we can keep the most recent version
-	my @sort_versions = sort { $a->{version_id} <=> $b->{version_id} } @vo;
-
-	#remove the latest version (highest at end of array) from the version that may be deleted
-	pop(@sort_versions);
-
-	foreach my $curr_vo (@sort_versions) {
-		unless ( defined( $curr_vo->{used_by} ) ) {
-			$self->delete_version( $curr_vo->{version_id} );
-		}
-	}
-}
 
 #takes a GenomeProject object and adds it to the database including embedded Replicons and Genes
 sub update_genomeproject {
 	my ( $self, $gpo ) = @_;
 
-	#Create a new version unless it is already set
-	unless ( $self->version_id ) {
-		$self->version_id( $self->_new_version() );
-		$logger->debug("We had to create a new version");
-	}
+	$self->dbh($self->_db_connect());
 
 	#Set the version id
 	$gpo->version_id( $self->version_id );
 
 	#insert into genomeproject table
 	my $gpv_id = $self->_insert_record( $gpo, 'genomeproject' );
-
-	#insert into reference table
-	#my $ref_id = $self->_insert_record( $gpo, 'reference' );
 
 	#insert into taxonomy table
 	my $tax_id = $self->_insert_record( $gpo, 'taxonomy' );
@@ -205,8 +219,6 @@ sub _insert_record {
 	#Note: always bind the values because it looks after converting undef to null
 	my $bind = join( ',', ('?') x @values );
 
-	#my $sql = "INSERT IGNORE $table_name ($fields) VALUES ($bind)";
-
 	#Use REPLACE instead of INSERT so this method can be used for both inserts or replacements
 	my $sql = "REPLACE $table_name ($fields) VALUES ($bind)";
 
@@ -221,79 +233,6 @@ sub _insert_record {
 
 }
 
-#Deletes a complete microbedb version (from all tables) AND removes flat files
-sub delete_version {
-	my ( $self, $version_id, $save_files ) = @_;
-
-	my $dbh = $self->dbh;
-
-	#check the version table to make sure no one is using the data
-	my $so = new MicrobeDB::Search();
-	my ($vo) = $so->table_search( 'version', { version_id => $version_id } );
-	croak "Version id: $version_id was not found in version table!" unless defined($vo);
-	my $being_used   = $vo->{used_by};
-	my $dl_directory = $vo->{dl_directory};
-	if ($being_used) {
-		warn "Version $version_id is being used by $being_used. This version will NOT be deleted!";
-		return;
-	}
-
-	#list of tables to delete records from
-	my @tables_to_delete = qw/genomeproject replicon gene version/;
-
-	#delete records corresponding to the version id in each table
-	foreach my $curr_table (@tables_to_delete) {
-		my $sql = "DELETE FROM $curr_table WHERE version_id = $version_id ";
-
-		#Prepare the statement
-		my $sth = $dbh->prepare($sql);
-
-		#call the statement
-		$sth->execute();
-
-	}
-	unless ($save_files) {
-
-		#delete the actual files
-		`rm -rf $dl_directory`;
-	}
-
-}
-
-sub save_version {
-	my ( $self, $version_id, $name ) = @_;
-
-	return unless ($name);
-	return unless ($version_id);
-
-	my $so = new MicrobeDB::Search();
-	my ($vo) = $so->table_search( 'version', { version_id => $version_id } );
-	unless ( defined($vo) ) {
-		return;
-	}
-
-	my $dbh = $self->dbh;
-
-	my $sql;
-	if ( $name eq 'null' ) {
-		$sql = "UPDATE version SET used_by=null WHERE version_id = $version_id LIMIT 1";
-	} else {
-
-		#Check if someone else is already using this version
-		if ( defined( $vo->{'used_by'} ) ) {
-			$name = join( ', ', $vo->{'used_by'}, $name );
-		}
-
-		$sql = "UPDATE version SET used_by='$name' WHERE version_id = $version_id LIMIT 1";
-	}
-
-	#
-	my $sth = $dbh->prepare($sql);
-
-	#call the statement
-	return $sth->execute();
-
-}
 
 1;
 

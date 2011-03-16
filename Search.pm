@@ -1,3 +1,21 @@
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 package MicrobeDB::Search;
 
 #Search allows searching of the MicrobeDB
@@ -15,11 +33,10 @@ use base ("MicrobeDB::MicrobeDB");
 require MicrobeDB::Replicon;
 require MicrobeDB::GenomeProject;
 require MicrobeDB::Gene;
-#require UpdateLog;
+require MicrobeDB::Version;
 
-#our $AUTOLOAD;
-
-
+my @FIELDS;
+BEGIN{
 
 #All fields in the following arrays correspond to the fields in the database
 
@@ -38,26 +55,22 @@ my @_db_connect = qw(
   dbh
 );
 
-my @FIELDS = ( @_search, @_db_connect );
+@FIELDS = ( @_search, @_db_connect );
+
+}
+use fields @FIELDS;
 
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Default is not to retrieve the sequence
 	$self->return_seqs(0);
 
 	#Advanced search is turned off by default
 	$self->advanced_where(0);
-
-
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {

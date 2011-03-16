@@ -1,4 +1,23 @@
 #!/usr/bin/perl
+
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 #All genomes are downloaded from NCBI using either Aspera (default) or FTP
 #Aspera should be much faster, but if you have problems you might want to try using FTP (download_version.pl --ftp <DIR>)
 
@@ -60,9 +79,9 @@ sub NCBI_aspera{
     my $remotedir  = 'genomes/Bacteria/';
 #    my $parentdir  = "$download_parent_dir";
 #    my $prefix     = 'Bacteria';
-    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+#    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+    my @file_types = qw/faa ffn fna frn gbk gff rpt/;
     my $parameters = '';
-    my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
     my $logdir = $download_dir . 'log/';
@@ -99,14 +118,22 @@ sub runascp{
     my ( $parameters, $remotedir,$remotefile,$localdir ) = @_;
     my $status = 1;
     my $count  = 0;
-    while ( $status != 0 && $count < 5 ) {
+    while ( $status != 0 && $count < 10 ) {
     	my $ascp_cmd = $parameters.$remotedir.$remotefile. " $localdir";
-	print $ascp_cmd;
+	$logger->info("Downloading file: $remotefile");
+	$logger->debug($ascp_cmd);
 	$status = system($ascp_cmd);
 
-        sleep 120 unless $status == 0;
+	if($status){
+	    $logger->warn("Problem with downloading file: $remotefile".". Waiting 60 seconds before attempting again.");
+	    sleep 60;
+	}
         $count++;
-    
+    }
+
+    if($status){
+	$logger->fatal("Could not download file: $remotefile".", after $count attempts!");
+	die;
     }
 }
     
@@ -117,7 +144,6 @@ sub NCBIftp_wget3 {
     my $host       = 'ftp://ftp.ncbi.nih.gov';
     my $remotedir  = 'genomes/Bacteria/all.*';
     my $parameters = '';
-    my $clean      = 0;                                   #default is not to clean older directories
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
     my $logdir = $localdir . '/log/';
@@ -173,16 +199,26 @@ sub runwget {
 
 sub get_genomeprojfiles {
     my ($localdir) = @_;
-    my $content    = get('http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected');
-    my $content2   = get('http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected');
-    open( ORGINFO, ">$localdir/NCBI_orginfo.txt" )
-      or die "can't create file $localdir/NCBI_orginfo.txt";
-    open( COMPGEN, ">$localdir/NCBI_completegenomes.txt" )
-      or die "can't create file $localdir/NCBI_completegenomes.txt";
-    print ORGINFO $content;
-    print COMPGEN $content2;
-    close ORGINFO;
-    close COMPGEN;
+
+    my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
+    my $ncbi_orginfo_file=$localdir."/NCBI_orginfo.txt";
+
+    $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_orginfo_url");
+
+    my $ncbi_orginfo_content    = get($ncbi_orginfo_url);
+    open( my $ORGINFO,'>', $ncbi_orginfo_file ) or die "Can't create file $ncbi_orginfo_file";
+    print $ORGINFO $ncbi_orginfo_content;
+    close $ORGINFO;
+
+    my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
+    my $ncbi_compgen_file=$localdir."/NCBI_completegenomes.txt";
+
+    $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url";
+
+    my $ncbi_compgen_content   = get($ncbi_compgen_url);
+    open( my $COMPGEN, '>',$ncbi_compgen_file ) or die "can't create file $ncbi_compgen_file";
+    print $COMPGEN $ncbi_compgen_content;
+    close $COMPGEN;
 }
 
 sub writetolog {

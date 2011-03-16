@@ -1,8 +1,27 @@
 #!/usr/bin/perl
-#All genomes are parsed and loaded into microbedb
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
+
+#This script loads custom genomes (ones not downloaded from NCBI, but instead provided by the user)
 
 #Author Morgan Langille
-#Last updated: see svn
+#Last updated: see github
 
 use strict;
 use warnings;
@@ -13,6 +32,8 @@ use Getopt::Long;
 use LWP::Simple;
 use Log::Log4perl;
 use Cwd qw(abs_path getcwd);
+use Parallel::ForkManager;
+use Sys::CPU;
 
 BEGIN{
 # Find absolute path of script
@@ -24,15 +45,33 @@ chdir($path);
 use lib "../../";
 use lib "./";
 use MicrobeDB::FullUpdate;
-use NCBITOhash;
 use MicrobeDB::Search;
-
+use MicrobeDB::Parse;
+ 
 use XML::Simple;
 use LWP::Simple;
 
-my $download_dir; my $logger_cfg;
+my ($download_dir,$logger_cfg,$custom,$help,$parallel);
 my $res = GetOptions("directory=s" => \$download_dir,
-		     "logger=s" => \$logger_cfg,);
+		     "parallel:i"=>\$parallel,
+		     "logger=s" => \$logger_cfg,
+		     "custom"=>\$custom,
+		     "help"=>\$help,
+    );
+
+my $usage = "Usage: $0 [-p <num_cpu>][-l <logger.conf>] [-c] [-h] -d directory \n";
+my $long_usage = $usage.
+    "Options:
+-d or --directory <directory> : Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
+-c or --custom : signifies that this directory contains non-downloaded NCBI genomes. Genomes are assigned version_id 0.
+-p or --parallel: Using this option without a value will use all cpus, while giving it a value will limit to that many cpus. Without option only one cpu is used. 
+-l or --logger <logger config file>: alternative logger.conf file
+-h or --help : Show more information for usage.
+";
+die $long_usage if $help;
+
+die $usage unless $download_dir && -d $download_dir;
+
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
@@ -42,163 +81,69 @@ my $logger = Log::Log4perl->get_logger;
 # Clean up the download path
 $download_dir .= '/' unless $download_dir =~ /\/$/;
 
-#my $download_dir = $ARGV[0];
-unless ( $download_dir && -d $download_dir && -e "$download_dir/NCBI_completegenomes.txt" ) {
-	print "Input the directory containing the downloaded organisms from NCBI.\n";
-	$logger->fatal("Download directory not valid: $download_dir");
-	exit;
+
+my $cpu_count=1;
+
+#if the option is set
+if(defined($parallel)){
+    #option is set but with no value then use the max number of proccessors
+    if($parallel ==0){
+	$cpu_count=Sys::CPU::cpu_count();
+    }else{
+	$cpu_count=$parallel;
+    }
 }
 
-#Load all genomes into microbedb as a new version (note unused versions are deleted before this load is done)
+$logger->info("Parallel proccessing the loading step with $cpu_count proccesses.") if defined($parallel);
+my $pm = new Parallel::ForkManager($cpu_count);
+
+
+#Load the genome into microbedb as a custom genome (version_id==0)
 my $new_version = load_microbedb($download_dir);
 
 sub load_microbedb {
 	my ($dl_dir) = @_;
-	my $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir );
 
+	my $up_obj;
+	#custom genome
+	if($custom){
+	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir, version_id=>0 );
+	}else{
+	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir);
+	}
 	#do a directory scan
 	my @genome_dir = get_sub_dir($dl_dir);
 	
 	my $so = new MicrobeDB::Search();
 	foreach my $curr_dir (@genome_dir) {
-	    print "$curr_dir \n";
-	    $logger->debug("Working on $curr_dir");
-	    my $data_hash = undef;
+	    my $pid = $pm->start and next; 
+	    $logger->info("Working on $curr_dir");
 	    
 	    eval {
 		
-		#Call Will's script to parse the data and get the data structure
-		$data_hash = NCBITOhash::genomedata2hash( directory => $curr_dir );
-		my $gpo      = new MicrobeDB::GenomeProject(%$data_hash);
-		my $taxon_id = $gpo->taxon_id;
-		my ($taxon)    = $so->table_search( 'taxonomy', { taxon_id => $taxon_id } );
-		#set the 
-		unless ( $taxon && $taxon->{'superkindom'} ) {
-		    eval {
-			my ( $lineage, %lineage_full ) = get_taxonomy( $gpo->taxon_id );
-			
-			#Set the lineage information into our massive hash
-			$gpo->lineage($lineage);
-			
-			#put the taxonomy annotations into the genome project object
-			foreach ( keys(%lineage_full) ) {
-			    $gpo->$_( $lineage_full{$_} );
-			}
-		    };
-		    if ($@) {
-			warn
-			    "Couldn't retrieve taxon information from NCBI for taxon id:$taxon_id. Lineage fields will not be filled for $curr_dir ";
-		    }
-		}
-		
-		#Set the gp directory
-		$gpo->gpv_directory($curr_dir);
-		
+		#Parse the data and get the data structure
+		my $parse =new MicrobeDB::Parse();
+		my $gpo = $parse->parse_genome($curr_dir);
+    		
 		#pass the object to FullUpdate to do the database stuff
 		$up_obj->update_genomeproject($gpo);
 	    };
 	    
 	    #if there was a parsing problem, give a warning and skip to the next genome project
 	    if ($@) {
-		warn "WARNING, Couldn't add the following to microbedb: $curr_dir \nReason: $@\n";
-		next;
+		warn "Couldn't add the following to microbedb: $curr_dir ! Reason: $@";
+		$logger->error("Couldn't add the following to microbedb: $curr_dir ! Reason: $@");
+	      
 	    }
+	    $pm->finish;
 	    
 	}
-	
-	#check the updatelog for any manual changes that need to be made
-	#manual_changes($up_obj);
-	
+	$pm->wait_all_children;
 	return $up_obj->version_id();
 
 }
 
-#Retrieves taxon information from NCBI's website using Eutils
-#Input: a NCBI taxon id
-#Output: the lineage, and the full taxon
-sub get_taxonomy {
-	my ($taxon_id) = @_;
-	my $eutil      = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?';
-	my $email      = 'mlangill@sfu.ca';
-	my $tool_name  = "microbedb";
 
-	my $efetch = "$eutil" . "db=taxonomy&id=$taxon_id&report=xml&mode=text&email=$email&tool=$tool_name";
-
-	#get the results in XML from NCBI
-	my $xml_results = get($efetch);
-
-	#Convert the XML into a hash
-	my $xml          = new XML::Simple;
-	my $nice_results = $xml->XMLin($xml_results);
-
-	my @full_lineage = @{ $nice_results->{Taxon}{LineageEx}{Taxon} };
-
-	#the first one is not useful
-	#shift(@full_lineage);
-
-	my %lineage_hash;
-	foreach (@full_lineage) {
-		my $rank = $_->{Rank};
-		my $name = $_->{ScientificName};
-
-		#check the rank and if we want it set it in the object
-		if ( good_rank($rank) ) {
-			$lineage_hash{$rank} = $name;
-		}
-	}
-
-	#Look for synonyms
-	if ( defined( $nice_results->{Taxon}{OtherNames}{EquivalentName} ) ) {
-		my $synonyms;
-		if ( ref( $nice_results->{Taxon}{OtherNames}{EquivalentName} ) eq 'ARRAY' ) {
-			$synonyms = join( "; ", @{ $nice_results->{Taxon}{OtherNames}{EquivalentName} } );
-		} else {
-			$synonyms = $nice_results->{Taxon}{OtherNames}{EquivalentName};
-		}
-		$lineage_hash{'synonyms'} = $synonyms;
-	}
-	if ( defined( $nice_results->{Taxon}{OtherNames}{Synonym} ) ) {
-		my $synonyms;
-		if ( ref( $nice_results->{Taxon}{OtherNames}{Synonym} ) eq 'ARRAY' ) {
-			$synonyms = join( "; ", @{ $nice_results->{Taxon}{OtherNames}{Synonym} } );
-		} else {
-			$synonyms = $nice_results->{Taxon}{OtherNames}{Synonym};
-		}
-		if ( defined( $lineage_hash{'synonyms'} ) ) {
-			$lineage_hash{'synonyms'} = join( "; ", $lineage_hash{'synonyms'}, $synonyms );
-		} else {
-			$lineage_hash{'synonyms'} = $synonyms;
-		}
-
-	}
-
-	#set the "other" name
-	my $real_rank = $nice_results->{Taxon}{Rank};
-	if ( $real_rank eq 'no rank' ) {
-		$lineage_hash{'other'} = $nice_results->{Taxon}{ScientificName};
-	} elsif ( good_rank($real_rank) ) {
-		$lineage_hash{$real_rank} = $nice_results->{Taxon}{ScientificName};
-	}
-	return ( $nice_results->{Taxon}{Lineage}, %lineage_hash );
-
-}
-
-#determines whether a certain taxonomy rank should be used
-sub good_rank {
-	my $rank = shift;
-	if (   $rank eq 'superkingdom'
-		|| $rank eq 'phylum'
-		|| $rank eq 'class'
-		|| $rank eq 'order'
-		|| $rank eq 'family'
-		|| $rank eq 'genus'
-		|| $rank eq 'species' )
-	{
-		return 1;
-	} else {
-		return 0;
-	}
-}
 
 sub get_sub_dir {
 	my $head_dir = shift;

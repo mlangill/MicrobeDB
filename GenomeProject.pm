@@ -1,3 +1,21 @@
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 package MicrobeDB::GenomeProject;
 
 #GenomeProject contains all features that are associated with a single genome project,
@@ -15,8 +33,16 @@ use Carp;
 
 require MicrobeDB::Replicon;
 
-#our $AUTOLOAD;
+require MicrobeDB::Search;
 
+my @FIELDS;
+my @_db_fields;
+my %_field_hash;
+my @_tables;
+my @genomeproject;
+my @taxonomy;
+my @version;
+BEGIN{
 #All fields in the following arrays correspond to the fields in the database
 
 #Each array represents one table in the database
@@ -25,7 +51,7 @@ require MicrobeDB::Replicon;
 #therefore, only a single copy for that field will be stored in the object and all others will be clobbered.
 
 #The array names must be kept the same as the database names (otherwise alter field_names())
-my @genomeproject = qw(
+@genomeproject = qw(
   gpv_id
   gp_id
   version_id
@@ -37,6 +63,9 @@ my @genomeproject = qw(
   patho_status
   disease
   genome_size
+  chromosome_num
+  contig_num
+  plasmid_num
   pathogenic_in
   temp_range
   habitat
@@ -51,7 +80,7 @@ my @genomeproject = qw(
   gpv_directory
 );
 
-my @taxonomy = qw(
+@taxonomy = qw(
   taxon_id
   superkingdom
   phylum
@@ -64,7 +93,7 @@ my @taxonomy = qw(
   synonyms
 );
 
-my @version = qw(
+@version = qw(
   version_id
   dl_directory
   version_date
@@ -72,13 +101,13 @@ my @version = qw(
 );
 
 #puts all fields relavant to the database in a single array and removes duplicates
-my @_db_fields = ( @genomeproject, @taxonomy, @version );
+@_db_fields = ( @genomeproject, @taxonomy, @version );
 my %temp;
 @temp{@_db_fields} = ();
 @_db_fields = keys %temp;
 
 #store the db tablenames that are used in this object
-my @_tables = qw(
+@_tables = qw(
   genomeproject
   taxonomy
   version
@@ -90,24 +119,22 @@ my @_other = qw(
   rep_index
 );
 
-my %_field_hash;
 $_field_hash{genomeproject} = \@genomeproject;
 $_field_hash{taxonomy} = \@taxonomy;
 $_field_hash{version}  = \@version;
 
-my @FIELDS = ( @_db_fields, @_other );
+@FIELDS = ( @_db_fields, @_other );
+}
+
+use fields  @FIELDS;
+
 
 sub new {
 
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#set the replicon index to the first of the array
 	$self->rep_index(0);
@@ -204,6 +231,148 @@ sub replicons{
     }
     #return the current content 
     return $self->{replicons};
+}
+
+sub delete{
+    my($self)=@_;
+    my $dbh=$self->_db_connect();
+    
+    my $gpv_id=$self->gpv_id();
+    if(defined($gpv_id)){
+	#list of tables to delete records from
+	my @tables_to_delete = qw/genomeproject replicon gene/;
+	
+	#delete records corresponding to gpv_id (use QUICK since there are millions of genes)
+	foreach my $curr_table (@tables_to_delete) {
+	    $dbh->do("DELETE QUICK FROM $curr_table WHERE gpv_id = $gpv_id ");
+	}
+    }
+}
+
+sub plasmid_num{
+   my ($self,$value)=@_;
+    $self->{plasmid_num} = $value if defined($value);
+    
+    unless(defined($self->{plasmid_num})){
+	$self->plasmid_num($self->_count_plasmid_num());
+    }
+
+    return $self->{plasmid_num};
+}
+
+sub _count_plasmid_num{
+    my ($self)=@_;
+    my $plasmid_num=0;
+    foreach my $rep (@{$self->replicons()}){
+	if($rep->rep_type() eq 'plasmid'){
+	    $plasmid_num++;
+	}   
+    }
+    return $plasmid_num;
+}
+
+sub contig_num{
+   my ($self,$value)=@_;
+    $self->{contig_num} = $value if defined($value);
+    
+    unless(defined($self->{contig_num})){
+	$self->contig_num($self->_count_contig_num());
+    }
+
+    return $self->{contig_num};
+}
+
+sub _count_contig_num{
+    my ($self)=@_;
+    my $contig_num=0;
+    foreach my $rep (@{$self->replicons()}){
+	if($rep->rep_type() eq 'contig'){
+	    $contig_num++;
+	}   
+    }
+    return $contig_num;
+}
+
+sub chromosome_num{
+   my ($self,$value)=@_;
+    $self->{chromosome_num} = $value if defined($value);
+    
+    unless(defined($self->{chromosome_num})){
+	$self->chromosome_num($self->_count_chromosome_num());
+    }
+
+    return $self->{chromosome_num};
+}
+
+sub _count_chromosome_num{
+    my ($self)=@_;
+    my $chromosome_num=0;
+    foreach my $rep (@{$self->replicons()}){
+	if($rep->rep_type() eq 'chromosome'){
+	    $chromosome_num++;
+	}   
+    }
+    return $chromosome_num;
+}
+
+#returns, sets, and finds genome size associated with this genome project
+sub genome_size{
+    my ($self,$genome_size)=@_;
+    $self->{genome_size} = $genome_size if defined($genome_size);
+    
+    unless(defined($self->{genome_size})){
+	$self->genome_size($self->_calc_genome_size());
+    }
+
+    return $self->{genome_size};
+}
+
+
+#calculates the genome size by adding up all the rep sizes
+sub _calc_genome_size{
+    my ($self)=@_;
+    my $genome_size;
+    foreach my $rep (@{$self->replicons()}){
+	$genome_size+=$rep->rep_size();
+    }
+    #format the size to be in Mb
+    $genome_size = sprintf("%.2f",$genome_size/1000000);
+    return $genome_size;
+}
+
+#returns, sets, and finds genome gc associated with this genome project
+sub genome_gc{
+    my ($self,$genome_gc)=@_;
+    $self->{genome_gc} = $genome_gc if defined($genome_gc);
+    
+    unless(defined($self->{genome_gc})){
+	$self->genome_gc($self->_calc_genome_gc());
+    }
+
+    return $self->{genome_gc};
+}
+
+
+#calculates the genome size by adding up all the rep sizes
+sub _calc_genome_gc{
+    my ($self)=@_;
+    my $genome_gc;
+    my $g_count=0;
+    my $c_count=0;
+    my $genome_size=0;
+    foreach my $rep (@{$self->replicons()}){
+	if(defined($rep->rep_seq())){
+	    $g_count += ($rep->{rep_seq} =~ tr/g//);
+	    $g_count += ($rep->{rep_seq} =~ tr/G//);
+	    $c_count += ($rep->{rep_seq} =~ tr/c//);
+	    $c_count += ($rep->{rep_seq} =~ tr/C//);
+	    $genome_size += $rep->rep_size();
+	}
+    }
+    $genome_gc = ($g_count+$c_count)/($genome_size);
+    #format the number
+    $genome_gc = sprintf("%.2f",$genome_gc*100);
+    return $genome_gc;
 }
 
 #returns an array of fields

@@ -1,5 +1,23 @@
 #!/usr/bin/perl
 
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 #Example of how to use the search api to get information from microbedb using an object as the search field
 #Searchable objects are:
 #GenomeProject, Replicon, Gene, Version, or UpdateLog
@@ -14,14 +32,16 @@
 use warnings;
 use strict;
 
-use lib "../../";
+use lib "../../../";
 
 #we need to use the Search library (this also imports GenomeProject,Replicon, and Gene libs)
 use MicrobeDB::Search;
 
-#Create an object with certain features that we want
-#In this case, we are searching for all chromosomes (i.e. not plasmids) from download version 10
-my $rep_obj = new MicrobeDB::Replicon( version_id => '10', rep_type => 'chromosome' );
+warn "What version?\n";
+my $version_id=<STDIN>;
+chomp($version_id);
+#Create an object with certain features that we want (e.g rep_type='chromosome')
+my $rep_obj = new MicrobeDB::Replicon( version_id => $version_id);
 
 #Create the search object.
 my $search_obj = new MicrobeDB::Search();

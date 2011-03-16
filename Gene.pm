@@ -1,3 +1,21 @@
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 package MicrobeDB::Gene;
 
 #Gene contains features that are associated with a single gene.
@@ -10,7 +28,13 @@ use strict;
 use warnings;
 use Carp;
 
-#our $AUTOLOAD;
+my @FIELDS;
+my @gene;
+my @_db_fields;
+my @_tables;
+my %_field_hash;
+my @version;
+BEGIN {
 
 #All fields in the following arrays correspond to the fields in the database
 
@@ -19,7 +43,7 @@ use Carp;
 #Duplicate field names *should* all represent the same piece of data (usually just a foreign key);
 #therefore, only a single copy for that field will be stored in the object and all others will be clobbered.
 
-my @gene = qw(
+@gene = qw(
   gene_id
   rpv_id
   version_id
@@ -40,7 +64,7 @@ my @gene = qw(
 );
 
 
-my @version = qw(
+@version = qw(
   version_id
   dl_directory
   version_date
@@ -48,32 +72,32 @@ my @version = qw(
 );
 
 #puts all fields relavant to the database in a single array and removes duplicates
-my @_db_fields = (@gene, @version);
+@_db_fields = (@gene, @version);
 my %temp;
 @temp{@_db_fields} =();
 @_db_fields = keys %temp; 
 
 #store the db tablenames that are used in this object
-my @_tables = qw(
+@_tables = qw(
 gene
 version
 );
-my %_field_hash;
+
 $_field_hash{gene} = \@gene;
 $_field_hash{version}  = \@version;
 
-my @FIELDS = ( @gene, @version );
+@FIELDS = ( @_db_fields );
+
+}
+
+use fields @FIELDS;
+
 
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {

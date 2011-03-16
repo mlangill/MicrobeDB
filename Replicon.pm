@@ -1,3 +1,21 @@
+#Copyright (C) 2011 Morgan G.I. Langille
+#Author contact: morgan.g.i.langille@gmail.com
+
+#This file is part of MicrobeDB.
+
+#MicrobeDB is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+
+#MicrobeDB is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
+
 package MicrobeDB::Replicon;
 
 #The Replicon class contains features that are associated with a single replicon (chromosome or plasmid) within an organism.
@@ -14,6 +32,14 @@ use Carp;
 use MicrobeDB::Gene;
 require MicrobeDB::Search;
 
+my @FIELDS;
+my @replicon;
+my @version;
+my @_db_fields;
+my @_tables;
+my %_field_hash;
+BEGIN {
+
 #All fields in the following arrays correspond to the fields in the database
 
 #Each array represents one table in the database
@@ -21,7 +47,7 @@ require MicrobeDB::Search;
 #Duplicate field names *should* all represent the same piece of data (usually just a foreign key);
 #therefore, only a single copy for that field will be stored in the object and all others will be clobbered.
 
-my @replicon = qw(
+@replicon = qw(
   rpv_id
   gpv_id
   version_id
@@ -33,14 +59,13 @@ my @replicon = qw(
   cds_num
   gene_num
   protein_num
-  genome_id
   rep_size
   rna_num
   file_types
   rep_seq
 );
 
-my @version = qw(
+@version = qw(
   version_id
   dl_directory
   version_date
@@ -48,19 +73,19 @@ my @version = qw(
 );
 
 #puts all fields relavant to the database in a single array and removes duplicates
-my @_db_fields = (@replicon, @version);
+@_db_fields = (@replicon, @version);
 my %temp;
 @temp{@_db_fields} =();
 @_db_fields = keys %temp; 
 
 
 #store the db tablenames that are used in this object
-my @_tables = qw(
+@_tables = qw(
 replicon
 version
 );
 
-my %_field_hash;
+
 $_field_hash{replicon} = \@replicon;
 $_field_hash{version}  = \@version;
 
@@ -70,18 +95,16 @@ my @_other = qw(
   gene_index
 );
 
-my @FIELDS = ( @replicon, @version, @_other );
+@FIELDS = ( @_db_fields, @_other );
+}
+
+use fields  @FIELDS;
 
 sub new {
 	my ( $class, %arg ) = @_;
 
-	#Bless an anonymous empty hash
-	my $self = bless {}, $class;
-
-	#Fill all of the keys with the fields
-	foreach (@FIELDS) {
-		$self->{$_} = undef;
-	}
+	#bless and restrict the object
+	my $self = fields::new($class);
 
 	#set the gene index to the first of the array
 	$self->gene_index(0);
@@ -187,7 +210,7 @@ sub _retrieve_genes{
 }
 
 sub genes{
-#returns, sets, and finds replicons associated with this genome project
+#returns, sets, and finds replicons associated with this replicon
     my ($self,$new_genes) = @_;
 
     #Set the new value for the attribute if available (stored as a reference to an array)
@@ -198,6 +221,28 @@ sub genes{
     }else{
         return $self->_retrieve_genes();
     }
+}
+
+#returns, sets, and finds replicon sequence associated with this replicon
+sub rep_seq{
+    my ($self,$rep_seq) = @_;
+
+    #Set the new value for the attribute if given
+    $self->{rep_seq} = $rep_seq if defined($rep_seq);
+
+    if(defined($self->{rep_seq})){
+	return $self->{rep_seq};
+    }else{
+        return $self->_retrieve_rep_seq();
+    }
+}
+
+sub _retrieve_rep_seq{
+    my ($self) =@_;
+    my $so = new MicrobeDB::Search(return_seqs=>1);
+    my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
+    
+    return $replicon->rep_seq();
 }
 
 sub table_names {    
