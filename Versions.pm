@@ -124,6 +124,31 @@ sub version_changes {
     return ($newrec, $changed, $deleted);
 }
 
+# Return the MicrobeDB version number of the
+# newest version loaded
+
+sub newest_version {
+    my ($self) = @_;
+
+    my @vers = $self->get_versions();
+    return pop @vers;
+}
+
+# Check if a particular version is valid still
+# Give a MicrobeDB version number and check the result
+
+sub isvalid {
+    my ($self, $ver) = @_;
+
+    my @vers = $self->get_versions();
+
+    foreach my $v (@vers) {
+	return 1 if($ver eq $v);
+    }
+
+    return 0;
+}
+
 sub _get_version_hash {
     my ($self, $ver) = @_;
 
