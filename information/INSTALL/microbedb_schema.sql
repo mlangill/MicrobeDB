@@ -1,3 +1,5 @@
+-- MicrobeDB Schema version 1.0
+
 -- MySQL dump 10.13  Distrib 5.1.49, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: microbedb
@@ -9,6 +11,18 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `microbedb_meta`
+--
+
+CREATE TABLE IF NOT EXISTS `microbedb_meta` (
+  `meta_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `meta_key` varchar(255) NOT NULL,
+  `meta_value` text,
+  PRIMARY KEY (`meta_id`),
+  UNIQUE KEY `meta_key` (`meta_key`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 --
 -- Table structure for table `gene`
