@@ -290,7 +290,7 @@ sub parse_ncbicompgenomefile {
 	} elsif (/^\d+\s+\w+/) {
 	    my @entries = split(/\t/);
 	    
-	    if ( $entries[1] == $gp_id ) {
+	    if ( $entries[0] == $gp_id ) {
 		my $i = 0;
 		foreach (@entries) {
 		    $comp_org_parse{ $headings[$i] } = $_;
@@ -318,7 +318,7 @@ sub parse_ncbicompgenomefile {
 	$gpo->plasmid_num($comp_org_parse{'Number of Plasmids'}) if exists($comp_org_parse{'Number of Plasmids'});
 
     }else{
-	$logger->warn("Couldn't find Project ID: $gp_id within the complete_genome_file: $complete_genome_file . A few fields in GenomeProject will not be filled for this organism");	
+	$logger->warn("Couldn't find RefSeq project ID: $gp_id within the complete_genome_file: $complete_genome_file . A few fields in GenomeProject will not be filled for this organism");	
     }
 }
 
@@ -359,7 +359,7 @@ sub parse_ncbiorginfofile {
     }
     if($found_orginfo){
 	#map the old code parse hash to the gpo
-	$gpo->gp_id($info_org_parse{'Project ID'}) if exists($info_org_parse{'Project ID'});
+	$gpo->gp_id($info_org_parse{'RefSeq project ID'}) if exists($info_org_parse{'ReqSeq project ID'});
 	$gpo->gram_stain($info_org_parse{'Gram Stain'}) if exists($info_org_parse{'Gram Stain'});
 	$gpo->disease($info_org_parse{'Disease'}) if exists($info_org_parse{'Disease'});
 	$gpo->pathogenic_in($info_org_parse{'Pathogenic in'}) if exists($info_org_parse{'Pathogenic in'});
