@@ -1,6 +1,11 @@
 MicrobeDB ChangeLog
 =
 ##v0.2
+* Updated Versions.pm slightly adding calls such as isvalid() which will return if a given version number is valid in the database.  A good test when doing diffs between versions, check if the version you're trying to update from is still loaded!
+
+* Added microbedb_meta table to schema file and update sql file
+
+* Changed gp_id from Project id to RefSeq project id which only seems to be actually referenced in about 2 locations plus one array index needed changing. 
 
 *Parsing of files is all done within new Parse.pm module (a proper OO module that follows the rest of the MicrobeDB code). Will's old NCBI2hash.pm module is gone. Also, the parsing has been simplified so that everything comes from Genbank files and the two NCBI special table files. This will make maintaining the parsing code more robust and much easier to update.
 
