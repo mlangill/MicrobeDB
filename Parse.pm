@@ -122,10 +122,7 @@ sub parse_taxonomy{
     #set the 
     if (! (defined($taxon) && $taxon->{'superkingdom'}) ) {
 	eval {
-	    my ( $lineage, %lineage_full ) = get_taxonomy( $taxon_id );
-	    
-	    #Set the lineage information into our massive hash
-	    $gpo->lineage($lineage);
+	    my %lineage_full = get_taxonomy( $taxon_id );
 	    
 	    #put the taxonomy annotations into the genome project object
 	    foreach ( keys(%lineage_full) ) {
@@ -507,7 +504,7 @@ sub get_taxonomy {
 	} elsif ( good_rank($real_rank) ) {
 		$lineage_hash{$real_rank} = $nice_results->{Taxon}{ScientificName};
 	}
-	return ( $nice_results->{Taxon}{Lineage}, %lineage_hash );
+	return %lineage_hash;
 
 }
 

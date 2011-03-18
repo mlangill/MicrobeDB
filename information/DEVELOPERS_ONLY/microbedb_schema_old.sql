@@ -166,7 +166,7 @@ CREATE TABLE `version` (
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-03-18 14:28:06
+-- Dump completed on 2011-03-18 15:20:09
 -- MySQL dump 10.13  Distrib 5.1.49, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: microbedb
@@ -191,4 +191,4 @@ INSERT INTO `microbedb_meta` VALUES (1,'schema_version','1');
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-03-18 14:28:07
+-- Dump completed on 2011-03-18 15:20:10

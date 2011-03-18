@@ -57,7 +57,6 @@ BEGIN{
   version_id
   taxon_id
   org_name
-  lineage
   gram_stain
   genome_gc
   patho_status
