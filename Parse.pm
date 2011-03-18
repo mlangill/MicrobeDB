@@ -120,7 +120,7 @@ sub parse_taxonomy{
     my $so = new MicrobeDB::Search;
     my ($taxon)    = $so->table_search( 'taxonomy', { taxon_id => $taxon_id } );
     #set the 
-    if (! (defined($taxon) && $taxon->{'superkindom'}) ) {
+    if (! (defined($taxon) && $taxon->{'superkingdom'}) ) {
 	eval {
 	    my ( $lineage, %lineage_full ) = get_taxonomy( $taxon_id );
 	    
@@ -359,7 +359,7 @@ sub parse_ncbiorginfofile {
     }
     if($found_orginfo){
 	#map the old code parse hash to the gpo
-	$gpo->gp_id($info_org_parse{'RefSeq project ID'}) if exists($info_org_parse{'ReqSeq project ID'});
+	$gpo->gp_id($info_org_parse{'RefSeq project ID'}) if exists($info_org_parse{'RefSeq project ID'});
 	$gpo->gram_stain($info_org_parse{'Gram Stain'}) if exists($info_org_parse{'Gram Stain'});
 	$gpo->disease($info_org_parse{'Disease'}) if exists($info_org_parse{'Disease'});
 	$gpo->pathogenic_in($info_org_parse{'Pathogenic in'}) if exists($info_org_parse{'Pathogenic in'});
