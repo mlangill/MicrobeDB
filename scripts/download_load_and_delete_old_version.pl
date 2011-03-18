@@ -59,7 +59,7 @@ die $long_usage if $help;
 die $usage unless $download_parent_dir;
 
 
-my $cpu_count=1;
+my $cpu_count=0;
 
 #if the option is set
 if(defined($parallel)){
@@ -68,7 +68,7 @@ if(defined($parallel)){
 	$cpu_count=Sys::CPU::cpu_count();
     }else{
 	$cpu_count=$parallel;
-    }
+    }5B
 }
 
 

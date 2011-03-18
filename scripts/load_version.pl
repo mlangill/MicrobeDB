@@ -82,7 +82,7 @@ my $logger = Log::Log4perl->get_logger;
 $download_dir .= '/' unless $download_dir =~ /\/$/;
 
 
-my $cpu_count=1;
+my $cpu_count=0;
 
 #if the option is set
 if(defined($parallel)){
