@@ -33,23 +33,23 @@ if(defined($schema_version)){
 my @update_files = glob('schema_updates/*.sql');
 
 #Get a list of all updates
-my @schema_updates;
+my %schema_updates;
 foreach my $update(@update_files){
     if($update =~/update_schema_v(\d+)\.sql/){
-	push(@schema_updates,$1);
+	$schema_updates{$1}=$update;
     }else{
 	warn "Can't parse schema version information from file: $update";
     }
 }
 
-@schema_updates=sort{$a<=>$b}@schema_updates;
-
 my $new_version_flag=0;
-foreach my $ver_number(@schema_updates){
+foreach my $ver_number(sort keys %schema_updates){
     if($ver_number > $schema_version){
 	$new_version_flag=1;
-	print "Your schema is out-of-date, updating to version: $ver_number\n";
-	my $update_cmd = 'mysql microbedb < update_schema_v'.$ver_number.'.sql';
+	my $update_file=$schema_updates{$ver_number};
+	print "Your schema is out-of-date, updating to version: $ver_number with mysql update file: $update_file\n";
+   
+	my $update_cmd = 'mysql microbedb < '.$update_file;
 	system($update_cmd);
 
         #update the schema_version number in the database
