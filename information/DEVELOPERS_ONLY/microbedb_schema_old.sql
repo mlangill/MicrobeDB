@@ -53,7 +53,6 @@ CREATE TABLE `genomeproject` (
   `version_id` int(10) unsigned NOT NULL DEFAULT '0',
   `taxon_id` int(10) unsigned DEFAULT '0',
   `org_name` text,
-  `lineage` text,
   `gram_stain` enum('+','-','neither','unknown') DEFAULT 'unknown',
   `genome_gc` float(4,2) DEFAULT '0.00',
   `patho_status` enum('pathogen','nonpathogen','unknown') DEFAULT 'unknown',
@@ -69,7 +68,7 @@ CREATE TABLE `genomeproject` (
   `arrangement` text,
   `endospore` enum('yes','no','unknown') DEFAULT 'unknown',
   `motility` enum('yes','no','unknown') DEFAULT 'unknown',
-  `salinity` enum('Non-halophilic','Mesophilic','Moderate halophile','Extreme halophile','unknown') DEFAULT 'unknown',
+  `salinity` text,
   `oxygen_req` enum('unknown','aerobic','microaerophilic','facultative','anaerobic') DEFAULT 'unknown',
   `release_date` date DEFAULT '0000-00-00',
   `centre` text,
@@ -166,7 +165,7 @@ CREATE TABLE `version` (
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-03-18 15:20:09
+-- Dump completed on 2011-03-18 16:29:45
 -- MySQL dump 10.13  Distrib 5.1.49, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: microbedb
@@ -183,7 +182,7 @@ CREATE TABLE `version` (
 -- Dumping data for table `microbedb_meta`
 --
 
-INSERT INTO `microbedb_meta` VALUES (1,'schema_version','1');
+INSERT INTO `microbedb_meta` VALUES (1,'schema_version','2');
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -191,4 +190,4 @@ INSERT INTO `microbedb_meta` VALUES (1,'schema_version','1');
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-03-18 15:20:10
+-- Dump completed on 2011-03-18 16:29:46
