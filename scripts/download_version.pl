@@ -213,7 +213,7 @@ sub get_genomeprojfiles {
     my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
     my $ncbi_compgen_file=$localdir."/NCBI_completegenomes.txt";
 
-    $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url";
+    $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url");
 
     my $ncbi_compgen_content   = get($ncbi_compgen_url);
     open( my $COMPGEN, '>',$ncbi_compgen_file ) or die "can't create file $ncbi_compgen_file";
