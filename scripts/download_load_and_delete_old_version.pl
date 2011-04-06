@@ -68,7 +68,7 @@ if(defined($parallel)){
 	$cpu_count=Sys::CPU::cpu_count();
     }else{
 	$cpu_count=$parallel;
-    }5B
+    }
 }
 
 
