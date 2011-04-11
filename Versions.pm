@@ -162,7 +162,7 @@ sub _get_version_hash {
     my ($self, $ver) = @_;
 
     my $dbh = $self->_db_connect();
-    my $sth = $dbh->prepare("SELECT replicon.rep_accnum, replicon.rpv_id, replicon.gpv_id, genomeproject.taxon_id FROM replicon, genomeproject WHERE genomeproject.gpv_id = replicon.gpv_id AND genomeproject.version_id = ? AND replicon.version_id = ?");
+    my $sth = $dbh->prepare("SELECT replicon.rep_accnum, replicon.rpv_id, replicon.gpv_id, genomeproject.taxon_id, genomeproject.gp_id FROM replicon, genomeproject WHERE genomeproject.gpv_id = replicon.gpv_id AND genomeproject.version_id = ? AND replicon.version_id = ?");
     $sth->execute($ver, $ver);
 
     my $ver_hash;
@@ -173,6 +173,7 @@ sub _get_version_hash {
 	$ver_hash->{$accnum}->{rpv_id} = $row[1];
 	$ver_hash->{$accnum}->{gpv_id} = $row[2];
 	$ver_hash->{$accnum}->{taxon_id} = $row[3];
+	$ver_hash->{$accnum}->{gp_id} = $row[4];
     }
 
     return $ver_hash;
