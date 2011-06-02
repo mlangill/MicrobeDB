@@ -39,8 +39,8 @@ use fields @FIELDS;
 #MicrobeDB MySQL settings
 my $db_config = "$ENV{HOME}/.my.cnf";
 die "MySQL config file:$db_config can not be found!" unless -e $db_config;
-
-my $dsn = "mysql_read_default_file=$db_config";
+my $database="microbedb";
+my $dsn = "DBI:mysql:database=$database;mysql_read_default_file=$db_config";
 
 #note that these fields are taken from the config file "my.cnf"
 my ($user,$pass) = ("","");

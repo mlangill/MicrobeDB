@@ -5,7 +5,7 @@ mysql -u root -p -e "CREATE USER microbedb IDENTIFITED BY 'some_password'";
 mysql -u root -p -e "GRANT ALL PRIVILEGES ON microbedb.* to 'microbedb'@'localhost'";
 
 
-Step 1: Create the microbedb database (Note: can use different database name instead of 'microbedb')
+Step 1: Create the microbedb database
 mysql -u root -p -e "CREATE DATABASE microbedb"
 
 Step 2: Load the microbedb table structures
@@ -17,9 +17,6 @@ emacs $HOME/.my.cnf
   host=localhost
   user=microbedb (or whatever username you use)
   password=some_password
-
-  [mysql]
-  database=microbedb (or whatever database name you created above)
 
 Step 4: Protect your MySQL config file
 chmod 600 $HOME/.my.cnf
