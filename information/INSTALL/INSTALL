@@ -1,32 +1,35 @@
-(Optional) Create a user to access the database
-a)within MYSQl
+These are the basic guidelines to getting MicrobeDB set up locally on your machine
+
+Optional Initial Step: Create a user to access the database:
 mysql -u root -p -e "CREATE USER microbedb IDENTIFITED BY 'some_password'";
 mysql -u root -p -e "GRANT ALL PRIVILEGES ON microbedb.* to 'microbedb'@'localhost'";
 
-1)Create or confirm your MySQL login config file ~/.my.cnf
-a)
+
+Step 1: Create the microbedb database (Note: can use different database name instead of 'microbedb')
+mysql -u root -p -e "CREATE DATABASE microbedb"
+
+Step 2: Load the microbedb table structures
+mysql -u root -p microbedb < microbedb_schema.sql
+
+Step 3: Create or confirm your MySQL login config file ~/.my.cnf
 emacs $HOME/.my.cnf
   [client]
   host=localhost
   user=microbedb (or whatever username you use)
   password=some_password
 
-b)Protect your config file
+  [mysql]
+  database=microbedb (or whatever database name you created above)
+
+Step 4: Protect your MySQL config file
 chmod 600 $HOME/.my.cnf
 
-2)Create the microbedb database
-mysql -u root -p -e "CREATE DATABASE microbedb"
+Step 5: Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as other perl modules or by adding the path to MicrobeDB to your $PERL5LIB environment variable
 
-3)Load the microbedb table structures
-mysql -u root -p microbedb < microbedb_schema.sql
-
-4)Get the genome files from genbank via ftp/ASPERA and parse files into mysql (this can take awhile time)
-./scripts/download_load_and_delete_old_version.pl
+Step 6: Get the genome files from genbank via ftp/ASPERA and parse files into mysql (this can take awhile time)
+./scripts/download_load_and_delete_old_version.pl -d <directory_for_flat_file_storage>
 
 Note: *If the download completes but there are errors in the parsing stage, then "run_update.pl <download_dir>" can be used to just redo the parsing part.
 
-5)Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as other perl modules or by adding the path to MicrobeDB to your $PERL5LIB environment variable
-
-
-#To load your personal genomes:
+Step 7: (optional) Load your personal genomes:
 ./scripts/load_custom_genomes.pl -d <your_directory>
