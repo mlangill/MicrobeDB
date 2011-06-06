@@ -150,9 +150,15 @@ sub get_sub_dir {
 	unless ( $head_dir =~ /\/$/ ) {
 		$head_dir .= '/';
 	}
-
-	my @dir = `ls -d $head_dir*/`;
-	chomp(@dir);
+	opendir(my $DIR,$head_dir) || die $!;
+	my @dir;
+	while (my $file= readdir($DIR)){
+	    next if ($file =~ m/^\./);
+	    my $possible_dir=$head_dir.$file;
+	    next unless (-d $possible_dir);
+	    push @dir,$possible_dir.'/';
+	}
+	
 	return remove_dir(@dir);
 }
 
