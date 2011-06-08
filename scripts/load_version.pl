@@ -147,13 +147,14 @@ sub load_microbedb {
 
 sub get_sub_dir {
 	my $head_dir = shift;
-	unless ( $head_dir =~ /\/$/ ) {
-		$head_dir .= '/';
-	}
 
-	my @dir = `ls -d $head_dir*/`;
-	chomp(@dir);
-	return remove_dir(@dir);
+	opendir my($dh), $head_dir;
+
+	my @dirs = grep { -d $_ } map { "$head_dir$_/" } readdir $dh;
+
+	closedir $dh;
+
+	return remove_dir(@dirs);
 }
 
 #removes any directories that does not contain a genome project (or causes other problems)
