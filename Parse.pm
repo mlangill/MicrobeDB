@@ -161,7 +161,8 @@ sub parse_gbk {
 	    $rep->rep_seq($seq->seq());
 	    $rep->file_name($file_name);
 	    $rep->file_types($file_types);
-	    $rep->rep_accnum($seq->accession_number());
+	    my $rep_accnum = $seq->accession_number().'.'.$seq->version();
+	    $rep->rep_accnum($rep_accnum);
 
 	    my $rep_ginum = $seq->primary_id();
 	    unless($rep_ginum =~ /\D/){
