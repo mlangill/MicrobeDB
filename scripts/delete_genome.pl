@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
 
@@ -29,7 +29,7 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use LWP::Simple;
+use Pod::Usage;
 use Log::Log4perl;
 use Cwd qw(abs_path getcwd);
 
@@ -41,33 +41,18 @@ chdir($path);
 
 #relative link to the api
 use lib "../../";
-use lib "./";
 use MicrobeDB::Search;
 
-my ($dir,$logger_cfg,$custom,$help,$version_id,$gpv_id);
+my ($dir,$logger_cfg,$help,$gpv_id);
 my $res = GetOptions("directory=s" => \$dir,
 		     "logger=s" => \$logger_cfg,
-		     "version=i"=>\$version_id,
 		     "gpv_id=i"=>\$gpv_id,
-		     "custom"=>\$custom,
 		     "help"=>\$help,
-    );
+    ) or pod2usage(2);
 
-my $usage = "Usage: 
-$0 [-l <logger.conf>] [-h] -d <directory>
-OR
-$0 [-l <logger.conf>] [-h] -g <gpv_id>
-";
-my $long_usage = $usage.
-    "-d or --directory <directory> : A directory of a genome already loaded in MicrobeDB.
--l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
+pod2usage(-verbose=>2) if $help;
 
-die $long_usage if $help;
-
-die $usage unless $gpv_id || $dir;
-
+pod2usage($0.': You must specify either -g gpv_id or -d dir.') unless (defined $dir || defined $gpv_id);
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
@@ -77,20 +62,77 @@ my $logger = Log::Log4perl->get_logger;
 my $so=new MicrobeDB::Search();
 my $gpo;
 if($gpv_id){
+    #retrieve gpo by gpv_id search
     ($gpo)= $so->object_search(new MicrobeDB::GenomeProject(gpv_id=>$gpv_id));
-    die "Can't find gpv_id: $gpv_id in MicrobeDB" unless ($gpo);
+    $logger->logdie("Can't find gpv_id: $gpv_id in MicrobeDB") unless $gpo;
     $logger->info("Removing genome,replicons, and genes associated with gpv_id: $gpv_id ");
 
 }else{
+    #retrieve gpo by directory search
     ($gpo)= $so->object_search(new MicrobeDB::GenomeProject(gpv_directory=>$dir));
-    die "Can't find any genome with gpv_directory: $dir" unless ($gpo);
+    $logger->logdie("Can't find any genome with gpv_directory: $dir") unless $gpo;
     $logger->info("Removing genome,replicons, and genes associated with directory: $dir ");
 
 }
 
+#do the actual deletion
 $gpo->delete();
 
 	
 
 
+
+__END__
+
+=head1 Name
+
+delete_genome.pl - Removes a single genome from MicrobeDB.
+
+=head1 USAGE
+
+delete_genome.pl [-l <logger.conf> -h] [-d <directory>|-g <gpv_id>]
+
+E.g.
+
+#Delete genome by gpv_id
+
+delete_genome.pl -g 55555 
+
+#Delete genome by directory
+
+delete_genome.pl -d Pseudomonas_aeruginosa_LESB58
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-g, --gpv_id <gpv_id>>
+
+Remove the genome with this gpv_id from MicrobeDB.
+
+=item B<-d, --directory <dir>>
+
+Remove the genome in MicrobeDB associated with this directory. 
+
+=item B<-l, --logger <logger config file>>
+
+Specify an alternative logger.conf file.
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<delete_genome.pl> This script deletes a single genome from an existing version of MicrobeDB. gpv_id  or the directory of the genome must be specified. 
+
+*Note: delete_version.pl should be used for removing an entire directory of NCBI genomes or custom genomes.
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
 

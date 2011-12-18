@@ -18,9 +18,6 @@
 #You should have received a copy of the GNU General Public License
 #along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
 
-#This script examines the taxonomy table and tries to retrieve information 
-#from NCBI for taxon ids that were not previously retrieved when loading the version.
-
 #Author Morgan Langille
 #Last updated: see github
 
@@ -28,32 +25,22 @@ use strict;
 use warnings;
 use Getopt::Long;
 use Log::Log4perl;
+use Pod::Usage;
 
 #relative link to the api
 use lib "../../";
 use MicrobeDB::Search;
 use MicrobeDB::Parse;
 
-my ($logger_cfg,$help);
-my $res = GetOptions("logger=s" => \$logger_cfg,
-		     "help"=>\$help,
-    );
+my $help;
+my $res = GetOptions("help"=>\$help)or pod2usage(2);
 
-my $usage = "Usage: 
-$0 [-l <logger config file>] [-h]\n";
-
-my $long_usage = $usage.
-    "-l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
-die $long_usage if $help;
-
+pod2usage(-verbose=>2) if $help;
 
 # Set the logger config to a default if none is given
-$logger_cfg = "logger.conf" unless($logger_cfg);
+my $logger_cfg = "logger.conf";
 Log::Log4perl::init($logger_cfg);
 my $logger = Log::Log4perl->get_logger;
-
 
 
 #retrieve all genome projects
@@ -73,6 +60,41 @@ foreach my $gpo(@gpos){
 
 }
 	
+
+__END__
+
+=head1 Name
+
+fix_taxonomy_table.pl - Reloads a single genome into MicrobeDB
+
+=head1 USAGE
+
+fix_taxonomy_table.pl [-h]
+
+E.g.
+
+fix_taxonomy_table.pl
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<fix_taxonomy_table.pl> This script examines the taxonomy table and tries to retrieve information from NCBI for taxon ids that were not previously retrieved when loading the version.
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
+
 
 
 
