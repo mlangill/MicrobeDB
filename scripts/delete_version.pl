@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
 
@@ -22,7 +22,7 @@
 use warnings;
 use strict;
 use Cwd qw(abs_path getcwd);
-
+use Pod::Usage;
 use Log::Log4perl;
 use Getopt::Long;
 
@@ -38,28 +38,16 @@ use lib "../../";
 use MicrobeDB::FullUpdate;
 use MicrobeDB::Version;
 
-my ($all_unused,$logger_cfg,$help,$force,$delete_files,$no_confirm);
+my ($all_unused,$logger_cfg,$help,$delete_files,$no_confirm,$force);
 my $res = GetOptions("all_unused" => \$all_unused,
 		     "force" => \$force,
 		     "no_confirm" => \$no_confirm,
 		     "delete_files"=>\$delete_files,
 		     "logger=s" => \$logger_cfg,
 		     "help"=>\$help,
-    );
+    ) or pod2usage(2);
 
-my $usage = "Usage: 
-$0 [-a] [-f] [-n] [-d] [-l <logger config file>] [-h] <version_id> \n";
-
-my $long_usage = $usage.
-    "Options:
--a or --all_unused : Removes all unused versions except for the two most recent ones (files are removed if not shared with other versions).
--f or --force : Removes version even if it has been 'saved'.
--n or --no_confirm : Removes version without confirmation prompt.
--d or --delete_files : Removes files associated with this version along with mysql (does not check if files are shared with other versions). 
--l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
-die $long_usage if $help;
+pod2usage(-verbose=>2) if $help;
 
 my $version_id = $ARGV[0];
 
@@ -90,10 +78,10 @@ unless(defined($version_id)){
     $version_id = <STDIN>;
     chomp($version_id);
 }
-unless ( defined($version_id) ) {
-	print $usage;
-	exit;
-}
+
+pod2usage($0.': You must specify a version id.') unless defined $version_id;
+       
+       
 
 my $confirm;
 my $confirm_delete_files;
@@ -121,11 +109,83 @@ if ( $confirm eq 'y' ) {
 	print "Deleting records in mysql. Flat files will remain untouched. Please wait.\n";
     }
 	my $vo = new MicrobeDB::Version( version_id=>$version_id );
-	my $notice = $vo->delete_version( $save_files );
+	my $notice = $vo->delete_version( $save_files, $force );
 	if ($notice) {
 		print "Version $version_id has been successfully removed.\n";
 	}
 } else {
 	print "Version $version_id was not properly confirmed by user and was not deleted.\n";
 }
+
+__END__
+
+=head1 Name
+
+delete_version.pl - Removes a MicrobeDB version.
+
+=head1 USAGE
+
+delete_version.pl [-a -f -n -d -l <log config> -h] [<version_id>] 
+
+E.g.
+
+#run interactively (displays table of existing versions)
+
+delete_version.pl
+
+
+#Specify version to delete directly
+
+delete_version.pl 23
+
+
+#Flat files are removed in addition to MySQL version
+
+delete_version.pl -d 23
+
+
+#No interactive prompt to confirm deletion
+
+delete_version.pl -n -d 23
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-a, --all_unused>
+
+Removes all unused versions except for the two most recent ones.
+
+=item B<-n, --no_confirm>
+
+Removes version without interactive confirmation prompt.
+
+=item B<-d, --delete_files>
+
+Removes files associated with this version in addition to data in the database. 
+
+=item B<-f, --force>
+
+Removes version even if it has been 'saved'.
+
+=item B<-l, --logger <logger config file>>
+
+Specify an alternative logger.conf file.
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<delete_version.pl> This script removes versions from MicrobeDB. MicrobeDB stores each update of downloaded files with a unique version id. Versions may need to be removed manually if an update failed or manual clean up is required. Old versions are deleted automatically by download_load_and_delete_old_version.pl.
+Note that if a version has been "saved" by using "save_version.pl", then it will not be deleted unless --force option is used. 
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
 

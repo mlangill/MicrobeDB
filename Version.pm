@@ -176,7 +176,7 @@ sub delete_unused_versions {
 
 #Deletes a complete microbedb version (from all tables) AND removes flat files unless save_files is set to 1
 sub delete_version {
-	my ( $self, $save_files ) = @_;
+	my ( $self, $save_files, $force) = @_;
 	my $version_id=$self->version_id();
 	my $dbh = $self->_db_connect;
 
@@ -186,7 +186,8 @@ sub delete_version {
 	croak "Version id: $version_id was not found in version table!" unless defined($vo);
 	my $being_used   = $vo->used_by();
 	my $dl_directory = $vo->dl_directory();
-	if ($being_used) {
+	
+	if ($being_used && (!defined $force || $force==0)) {
 		warn "Version $version_id is being used by $being_used. This version will NOT be deleted!";
 		return;
 	}
