@@ -103,11 +103,8 @@ sub NCBI_aspera{
 	    $ascp_dir='aspera_32';
 	}
     }elsif($Config{osname} =~ /darwin/){
-	if($Config{archname} =~ /x86_64/){
-	    $ascp_dir='aspera_mac_64';
-	}else{
-	    $ascp_dir='aspera_mac_32';
-	}
+	    $ascp_dir='aspera_mac';
+	
     }elsif($Config{osname} =~ /MSWin32/){
 	$logger->logdie("Looks like you are running Windows. MicrobeDB doesn't run on Windows yet.");      
     }else{

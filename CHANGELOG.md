@@ -1,5 +1,8 @@
 MicrobeDB ChangeLog
 =
+
+* Add aspera binary for Mac OS and make download_version.pl aware of it.
+
 * Fixed error causing bugs during load_version.pl associated with sub-directories not containing genomes. 
 
 * All scripts in /scripts directory have proper POD documentation. Access via --help option or perldoc.
