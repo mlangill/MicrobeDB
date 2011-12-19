@@ -1,0 +1,15 @@
+###Install MySQL (if not already)###
+1)Visit http://www.mysql.com/downloads/mysql/ and download appropriate package.
+2)Install both the MySQL-your_version.pkg and MySQL StartupItem.pkg (so the mysql server starts every time the computer starts). 
+3)Start the MySQL server by restarting your computer or running the following command from a shell:
+"sudo /Library/StartupItems/MySQLCOM/MySQLCOM start"
+
+4)Add the "mysql" command to your "Path". From a shell type:
+"sudo pico /etc/paths"
+Then add the following line to the end of the file:
+"/usr/local/mysql/bin"
+Save the file.
+
+###Follow steps outlined in general INSTALL document###
+
+ 
