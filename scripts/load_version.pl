@@ -155,7 +155,8 @@ sub remove_dir {
 	#Filter out some directories we don't want
 	foreach (@genome_dir) {
 		next if ( $_ =~ /CLUSTERS/ );
-
+		next if $_ =~ /\.\/$/;
+		next if $_ =~ /\.\.\/$/;
 		push( @temp, $_ );
 	}
 	return @temp;
@@ -170,7 +171,7 @@ load_version.pl - Loads a version of genomes into MicrobeDB
 
 =head1 USAGE
 
-load_version.pl [-l <logger.conf>] [-h] -d directory 
+load_version.pl [-c -p [<# proc>] -l <log conf> -h] -d directory 
 
 E.g.
 
