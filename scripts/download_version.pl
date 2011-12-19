@@ -113,7 +113,7 @@ sub NCBI_aspera{
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
     if ( $parameters eq '' ) {
-	$parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 50M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
+	$parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 100M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
     }
 
     #Create the log file if it doesn't exist already
