@@ -73,13 +73,13 @@ my $pm = new Parallel::ForkManager($cpu_count);
 for my $tarball (@compressed_files){
     my $pid = $pm->start and next; 
     $logger->info("Unpacking $tarball");
-    my $status= system("tar xzf $tarball");
-    if($status){
-	$logger->logdie("Unpacking of $tarball failed!");
-    }else{
-	$logger->info("Done unpacking and now deleting $tarball");
-	unlink($tarball);
-    }
+    system("tar xzf $tarball");
+   
+    $logger->logdie("Unpacking of $tarball failed!") if $?;
+    
+    $logger->info("Done unpacking and now deleting $tarball");
+    unlink($tarball);
+    
      $pm->finish;
 }
 $pm->wait_all_children;
