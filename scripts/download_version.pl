@@ -61,6 +61,8 @@ $logger_cfg = "logger.conf" unless($logger_cfg);
 Log::Log4perl::init($logger_cfg);
 my $logger = Log::Log4perl->get_logger;
 
+$logger->info("Downloading files to directory: $download_dir");
+
 if($ftp_flag){    
     #Download all genomes from NCBI using FTP
     $logger->info("Downloading files using FTP option");
@@ -70,9 +72,6 @@ if($ftp_flag){
     $logger->info("Downloading files using Aspera option");
     $download_dir = NCBI_aspera($download_dir);
 }
-
-#get_genomeprojfiles($dir);
-$logger->info("Using $download_dir");
 
 sub NCBI_aspera{
     my $download_dir= shift;
@@ -218,7 +217,7 @@ sub get_genomeprojfiles {
     my ($localdir) = @_;
 
     my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
-    my $ncbi_orginfo_file=$localdir."/NCBI_orginfo.txt";
+    my $ncbi_orginfo_file=$localdir."NCBI_orginfo.txt";
 
     $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_orginfo_url");
 
@@ -228,7 +227,7 @@ sub get_genomeprojfiles {
     close $ORGINFO;
 
     my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
-    my $ncbi_compgen_file=$localdir."/NCBI_completegenomes.txt";
+    my $ncbi_compgen_file=$localdir."NCBI_completegenomes.txt";
 
     $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url");
 
