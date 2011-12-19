@@ -27,6 +27,10 @@ use Cwd qw(abs_path getcwd);
 use Pod::Usage;
 use Time::localtime;
 
+#Call some modules we don't need here but will need in other scripts being called.
+use Parallel::ForkManager;
+use Bio::SeqIO;
+
 my $prefix = 'Bacteria';
 
 my ($download_parent_dir,$logger_cfg,$help,$parallel);;
