@@ -33,7 +33,6 @@ use Pod::Usage;
 
 use Cwd qw(abs_path getcwd);
 use Parallel::ForkManager;
-use Sys::CPU;
 
 BEGIN{
 # Find absolute path of script
