@@ -79,6 +79,8 @@ foreach my $ver_number(sort keys %schema_updates){
 	my $update_cmd = 'mysql microbedb < '.$update_file;
 	system($update_cmd);
 
+	$logger->logdie("Failed system command: $update_cmd") if $?;
+
         #update the schema_version number in the database
 	my $dbh = MicrobeDB::MicrobeDB->_db_connect();
 	my $sql = "UPDATE microbedb_meta SET meta_value=$ver_number WHERE meta_key='schema_version'";
