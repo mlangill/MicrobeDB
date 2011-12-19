@@ -157,6 +157,8 @@ sub remove_dir {
 		next if ( $_ =~ /CLUSTERS/ );
 		next if $_ =~ /\.\/$/;
 		next if $_ =~ /\.\.\/$/;
+		next if $_ =~ /log$/;
+
 		push( @temp, $_ );
 	}
 	return @temp;
