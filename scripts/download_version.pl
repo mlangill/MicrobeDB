@@ -87,8 +87,6 @@ sub NCBI_aspera{
     my @file_types = qw/gbk faa ffn fna frn gff rpt/;
     
     my $parameters = '';
-    my $overwrite  = 0;                                   #default is not to overwrite
-    my $get_gprj = 1;    #default is to get the organism info and complete genome files
     my $logdir = $download_dir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
     `mkdir -p $logdir` unless -d $logdir;
@@ -122,7 +120,8 @@ sub NCBI_aspera{
 	my $remotefile='all.'.$_.'.tar.gz';
 	&runascp( $parameters, $remotedir, $remotefile,$download_dir );
     }
-    if ($get_gprj) { &get_genomeprojfiles($download_dir); }
+
+     &get_genomeprojfiles($download_dir); 
     
 
 }
@@ -145,8 +144,7 @@ sub runascp{
     }
 
     if($status){
-	$logger->fatal("Could not download file: $remotefile".", after $count attempts!");
-	die;
+	$logger->logdie("Could not download file: $remotefile".", after $count attempts!");
     }
 }
     
@@ -157,17 +155,12 @@ sub NCBIftp_wget3 {
     my $host       = 'ftp://ftp.ncbi.nih.gov';
     my $remotedir  = 'genomes/Bacteria/all.*';
     my $parameters = '';
-    my $overwrite  = 0;                                   #default is not to overwrite
-    my $get_gprj = 1;    #default is to get the organism info and complete genome files
-    my $logdir = $localdir . '/log/';
+    my $logdir = $localdir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
-    `mkdir $logdir` unless -d $logdir;
+    `mkdir -p $logdir` unless -d $logdir;
 
-    $logger->fatal("The local directory doesn't exist, please create it first\n")
-      unless ( -e $localdir );
-    die "The local directory doesn't exist, please create it first\n"
-      unless ( -e $localdir );
-
+    $logger->logdie("The local directory doesn't exist, please create it first\n") unless  -e $localdir ;
+   
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
     if ( $parameters eq '' ) {
@@ -176,20 +169,8 @@ sub NCBIftp_wget3 {
 
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
-
-    #if the output dir exists, put a warning in log and overwrite if asked
-    if ( -e $localdir ) {
-        if ($overwrite) {
-	    $logger->warn("Directory $localdir already exists, files is being overwritten\n");
-            &runwget;
-            if ($get_gprj) { &get_genomeprojfiles; }
-        } else {
-	    $logger->error("Update failed on $localdir because directory already exists \n");
-        }
-    } else {
-        &runwget( $parameters, $host, $remotedir );
-        if ($get_gprj) { &get_genomeprojfiles($localdir); }
-    }
+    &runwget( $parameters, $host, $remotedir );
+    &get_genomeprojfiles($localdir); 
 
     #return the directory that contains the newly downloaded genomes from NCBI
     return $localdir;
@@ -205,8 +186,15 @@ sub runwget {
     while ( $status != 0 && $count < 5 ) {
     	my $wget_cmd = "wget $parameters $host/$remotedir";
         $status = system($wget_cmd);
-        sleep 120 unless $status == 0;
+        
+	if($status){
+	    $logger->warn("Problem with downloading! Waiting 60 seconds before attempting again.");
+	    sleep 60;
+	}
         $count++;
+    }
+    if($status){
+	$logger->logdie("Could not complete downloading, after $count attempts!");
     }
 }
 
