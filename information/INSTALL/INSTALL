@@ -3,7 +3,7 @@ These are the basic guidelines to getting MicrobeDB set up locally on your machi
 Note: Depending on how you have MySQL installed, you may not need to provide a password for the "root" account. If so just remove the "-p" from the following statements.  
 
 Optional Initial Step: Create a user to access the database:
-mysql -u root -p -e "CREATE USER microbedb IDENTIFITED BY 'some_password'"
+mysql -u root -p -e "CREATE USER 'microbedb'@'localhost' IDENTIFITED BY 'some_password'"
 mysql -u root -p -e "GRANT ALL PRIVILEGES ON microbedb.* to 'microbedb'@'localhost'"
 
 
