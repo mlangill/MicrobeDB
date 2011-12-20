@@ -24,7 +24,8 @@ MicrobeDB
     * Sys::CPU
 
 ##INSTALL##
-For installation information see [INSTALL.md](information/INSTALL/INSTALL.md) and if you are using a Mac also see [MAC_INSTALL](information/INSTALL/MAC_INSTALL.md).
+For installation information see [INSTALL.md](https://github.com/mlangill/MicrobeDB/blob/master/information/INSTALL/INSTALL.md) 
+and if you are using a Mac also see [MAC_INSTALL](https://github.com/mlangill/MicrobeDB/blob/master/information/INSTALL/MAC_INSTALL.md).
 
 ##Usage##
 Once MicrobeDB is installed you can connect to the MySQL database using any traditional MySQL method:
@@ -44,7 +45,7 @@ Once MicrobeDB is installed you can connect to the MySQL database using any trad
             
             use MicrobeDB::Search;
 
-    * See examples using the MicrobeDB API in [example scripts] (information/example_scripts)
+    * See examples using the MicrobeDB API in [example scripts] (https://github.com/mlangill/MicrobeDB/tree/master/information/example_scripts)
 
 
 ##Overview of MicrobeDB##

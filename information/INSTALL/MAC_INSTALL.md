@@ -14,6 +14,7 @@ These are installation instructions specific for Mac users.
         sudo pico /etc/paths
 
     * Then add the following line to the end of the file:
+
         /usr/local/mysql/bin
 
     * Save the file.
@@ -21,23 +22,28 @@ These are installation instructions specific for Mac users.
 ###Change the MySQL system setting 'max_allowed_packet'###
 
 1. Copy a config file into the proper location
+
         sudo cp /usr/local/mysql/support-files/my-large.cnf /etc/my.cnf
 
 2. Open up an editor on the config file
+
         sudo pico /etc/my.cnf
 
     * Find and change the following line in the config file:
 
         * From:
+
                 max_allowed_packet = 1M
 
         * To:
+
                 max_allowed_packet = 64M
 
 3. Restart the MySQL server:
+
         sudo /Library/StartupItems/MySQLCOM/MySQLCOM restart
 
 ###Continue with normal installation###
-* Follow steps outlined in the general [INSTALL](/INSTALL)
+* Follow steps outlined in the general [INSTALL](INSTALL.md)
 
  
