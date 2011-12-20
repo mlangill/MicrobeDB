@@ -1,6 +1,6 @@
 MicrobeDB
 =
-###ABOUT###
+##ABOUT##
 * MicrobeDB provides centralized local storage and access to completed Archaea and Bacteria genomes.
 
 * MicrobeDB contains three main features. 
@@ -8,102 +8,80 @@ MicrobeDB
 
 2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
 
-3. A Perl API is provided to interface with the MYSQL database and allow easy use of the data.
+3. A Perl API is provided to interface with the MySQL database and allow easy use of the data.
 
 * A presentation providing more information about MicrobeDB is online at: http://tinyurl.com/microbedb
 
-###INSTALL###
-For installation information see:
-<information/INSTALL/INSTALL>
+##INSTALL##
+For installation information see [INSTALL.md](information/INSTALL/INSTALL.md) and if you are using a Mac also see [MAC_INSTALL](information/INSTALL/MAC_INSTALL.md).
 
 ###REQUIREMENTS###
 * MySQL
 * Perl
-* Perl Modules
-** BioPerl
-** DBI
-** DBD::mysql
-** Parallel::ForkManager
-** Log::Log4perl
-** Sys::CPU
+* Perl Modules (available from CPAN)
+    * BioPerl
+    * DBI
+    * DBD::mysql
+    * Parallel::ForkManager
+    * Log::Log4perl
+    * Sys::CPU
 
 ###QUICK START GUIDE###
+Once MicrobeDB is installed you can connect to the MySQL database using any traditional MySQL method:
 
-1. Connecting directly to MySQL database
-database name:microbedb
-
-<mysql -u perlapi -p>
+1. Connecting directly to MySQL database via command line client
+        mysql -u microbedb -p
 
 2. Using MicrobeDB Perl API
-At the start of your perl script you need:
-use lib '/your/path/to/MicrobeDB';
-use MicrobeDB::Search;
 
-See example in "information/example_scripts";
+    * At the start of your perl script you need:
 
-#########################
+            use lib '/your/path/to/MicrobeDB';
+            
+            use MicrobeDB::Search;
 
-###Overview of MicrobeDB###
-* Note: Information below is available as a Powerpoint presentation in "information/Basic_Overview_MicrobeDB.ppt"
+See examples in: 
+    "information/example_scripts"
 
-MicrobeDB
-Centralized storage and access to completed Archaea and Bacteria genomes
-Same as those available at: http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi
+---------------------------
 
-Genome/Flat files are stored in one central location
+##Overview of MicrobeDB##
 
-Information at the genome project, chromosome, and gene level are parsed and stored in a MySQL database 
-including sequences and annotations 
+* Genome/Flat files are stored in one central location
+* Information at the genome project, chromosome, and gene level are parsed and stored in a MySQL database including sequences and annotations 
+* The files and the database can be updated easily via a single script
+* The genome files are stored in consistent structure with many different file types:
 
-The files and the database are updated monthly
+    * Bacteria_2009-09-01
+        * Acaryochloris_marina_MBIC11017
+        * Acholeplasma_laidlawii_PG_8A
+        * Acidimicrobium_ferrooxidans_DSM_10331
+        * Acidiphilium_cryptum_JF-5
+            * NC_009467.asn
+            * NC_009467.faa
+            * NC_009467.ffn
+            * NC_009467.fna
+            * NC_009467.gbk
+            * etc.
 
-File Structure
+* The MySQL database contains the following 4 main tables:
 
-Bacteria (sym-linked to the most recent download folder)
-Bacteria_2009-09-01(Version)
-Acaryochloris_marina_MBIC11017
-Acholeplasma_laidlawii_PG_8A
-Acidimicrobium_ferrooxidans_DSM_10331
-Acidiphilium_cryptum_JF-5
-NC_009467.asn
-NC_009467.faa
-NC_009467.ffn
-NC_009467.fna
-NC_009467.gbk
-NC_009467.GeneMark-2.5m
-NC_009467.GeneMarkHMM-2.6r
-NC_009467.gff
-NC_009467.Glimmer3
-NC_009467.Prodigal-1.10
-NC_009467.ptt
-NC_009467.rps
-NC_009467.rpt
-… for each replicon (i.e. chromosome and plasmid)
-Acidithiobacillus_ferrooxidans_ATCC_23270
-Acidithiobacillus_ferrooxidans_ATCC_53993
-…~950 genome projects
+    * Version
+        * Each monthly download from NCBI is given a new version number
+        * Data will not change if you always use the same version number of microbedb
+        * Version date can be cited for any method publications
+        * Each version contains one or more Genomeprojects (genomes)
 
-MySQL
+    * Genomeproject
+        * Contains information about the genome project and the organism that was sequenced
+        * E.g. taxon_id, org_name, lineage, gram_stain, genome_gc, patho_status, disease, genome_size, pathogenic_in, temp_range, habitat, shape, arrangement, endospore, motility, salinity, etc.
+        * Each genomeproject contains one or more Replicons
 
-Version
-Each monthly download from NCBI is given a new version number
-Advantages
-Data will not change if you always use the same version number of microbedb
-Version date can be cited for any method publications
-Disadvantages
-Data is redundant in the database (e.g. multiple versions of the same gene)
-A version number (version_id) must always be used when retrieving information otherwise multiple copies will be returned 
+    * Replicon
+        * Chromosome, plasmids, or contigs (for incomplete genomes)
+        * E.g. rep_accnum, definition, rep_type, rep_ginum, cds_num, gene_num, protein_num, genome_id, rep_size, rna_num, rep_seq (complete nucleotide sequence)
+        * Each replicon contains one or more genes
 
-Genomeproject
-Contains information about the genome project and the organism that was sequenced
-E.g. taxon_id, org_name, lineage, gram_stain, genome_gc, patho_status, disease, genome_size, pathogenic_in, temp_range, habitat, shape, arrangement, endospore, motility, salinity, etc.
-Each genomeproject contains one or more replicons
-
-Replicon
-Chromosome or plasmids
-E.g. rep_accnum, definition, rep_type, rep_ginum, cds_num, gene_num, protein_num, genome_id, rep_size, rna_num, rep_seq (complete nucleotide sequence)
-Each replicon contains one or more genes
-
-Gene
-Contains gene annotations and also the DNA and protein sequences (if protein coding gene)
-E.g. gid, pid, protein_accnum, gene_type, gene_start, gene_end, gene_length, gene_strand, gene_name, locus_tag, gene_product, gene_seq, protein_seq
+    * Gene
+        * Contains gene annotations and also the DNA and protein sequences (if protein coding gene)
+        * E.g. gid, pid, protein_accnum, gene_type, gene_start, gene_end, gene_length, gene_strand, gene_name, locus_tag, gene_product, gene_seq, protein_seq

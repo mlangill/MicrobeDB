@@ -2,7 +2,19 @@ INSTALL
 =
 These are the basic guidelines to getting MicrobeDB set up locally on your machine
 
-###INSTALLATION###
+###Requirements###
+You will need to install the following software BEFORE proceeding with the MicrobeDB install below. 
+* MySQL
+* Perl
+* Perl Modules (available from CPAN)
+    * BioPerl
+    * DBI
+    * DBD::mysql
+    * Parallel::ForkManager
+    * Log::Log4perl
+    * Sys::CPU
+
+###Installation###
 Note: Depending on how you have MySQL installed, you may not need to provide a password for the "root" account. If so just remove the "-p" from the following statements.  
 
 1. Create a user to access the database
@@ -19,7 +31,9 @@ Note: Depending on how you have MySQL installed, you may not need to provide a p
 
              max_allowed_packet  = 64M
 
-    * Restart the MySQL server ("sudo /etc/init.d/mysql restart")
+    * Restart the MySQL server 
+  
+             sudo /etc/init.d/mysql restart
 
 3. Create the microbedb database
 
@@ -47,9 +61,9 @@ Note: Depending on how you have MySQL installed, you may not need to provide a p
 
 7. Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as other perl modules or by adding the path to MicrobeDB to your $PERL5LIB environment variable
 
-* That is it! MicrobeDB is now installed on your computer.
+That is it! MicrobeDB is now installed on your computer.
 
-###Running MicorbeDB for the first time###
+###Running MicrobeDB for the first time###
 * To use MicrobeDB you will have to download and load a new version of genome files. 
 
 * To do this run the following command (this will take a while to run):
