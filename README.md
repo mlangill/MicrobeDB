@@ -12,10 +12,7 @@ MicrobeDB
 
 * A presentation providing more information about MicrobeDB is online at: http://tinyurl.com/microbedb
 
-##INSTALL##
-For installation information see [INSTALL.md](information/INSTALL/INSTALL.md) and if you are using a Mac also see [MAC_INSTALL](information/INSTALL/MAC_INSTALL.md).
-
-###REQUIREMENTS###
+##REQUIREMENTS##
 * MySQL
 * Perl
 * Perl Modules (available from CPAN)
@@ -26,13 +23,20 @@ For installation information see [INSTALL.md](information/INSTALL/INSTALL.md) an
     * Log::Log4perl
     * Sys::CPU
 
-###QUICK START GUIDE###
+##INSTALL##
+For installation information see [INSTALL.md](information/INSTALL/INSTALL.md) and if you are using a Mac also see [MAC_INSTALL](information/INSTALL/MAC_INSTALL.md).
+
+##Usage##
 Once MicrobeDB is installed you can connect to the MySQL database using any traditional MySQL method:
 
 1. Connecting directly to MySQL database via command line client
         mysql -u microbedb -p
 
-2. Using MicrobeDB Perl API
+2. Using a client desktop application such as [MySQL Workbench](http://www.mysql.com/products/workbench/)
+
+3. Using a web based application such as [phpMyAdmin](http://www.phpmyadmin.net/home_page/index.php)
+
+4. Using the MicrobeDB Perl API (no SQL needed!)
 
     * At the start of your perl script you need:
 
@@ -40,10 +44,8 @@ Once MicrobeDB is installed you can connect to the MySQL database using any trad
             
             use MicrobeDB::Search;
 
-See examples in: 
-    "information/example_scripts"
+    * See examples using the MicrobeDB API in [example scripts] (information/example_scripts)
 
----------------------------
 
 ##Overview of MicrobeDB##
 

@@ -2,8 +2,9 @@ INSTALL
 =
 These are the basic guidelines to getting MicrobeDB set up locally on your machine
 
-###Requirements###
-You will need to install the following software BEFORE proceeding with the MicrobeDB install below. 
+##Requirements##
+You will need to install the following software BEFORE proceeding with the MicrobeDB installation below. 
+
 * MySQL
 * Perl
 * Perl Modules (available from CPAN)
@@ -14,7 +15,7 @@ You will need to install the following software BEFORE proceeding with the Micro
     * Log::Log4perl
     * Sys::CPU
 
-###Installation###
+##Installation##
 Note: Depending on how you have MySQL installed, you may not need to provide a password for the "root" account. If so just remove the "-p" from the following statements.  
 
 1. Create a user to access the database
@@ -63,7 +64,7 @@ Note: Depending on how you have MySQL installed, you may not need to provide a p
 
 That is it! MicrobeDB is now installed on your computer.
 
-###Running MicrobeDB for the first time###
+##Running MicrobeDB for the first time##
 * To use MicrobeDB you will have to download and load a new version of genome files. 
 
 * To do this run the following command (this will take a while to run):
