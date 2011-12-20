@@ -21,6 +21,8 @@ MySQL
 Perl
 Perl Modules
 -BioPerl
+-DBI
+-DBD::mysql
 -Parallel::ForkManager
 -Log::Log4perl
 -Sys::CPU
