@@ -1,40 +1,40 @@
 MicrobeDB
 =
 ###ABOUT###
-MicrobeDB provides centralized local storage and access to completed Archaea and Bacteria genomes.
+* MicrobeDB provides centralized local storage and access to completed Archaea and Bacteria genomes.
 
-MicrobeDB contains three main features. 
-1)All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
+* MicrobeDB contains three main features. 
+1. All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
 
-2)For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
+2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
 
-3)A Perl API is provided to interface with the MYSQL database and allow easy use of the data.
+3. A Perl API is provided to interface with the MYSQL database and allow easy use of the data.
 
-A presentation providing more information about MicrobeDB is online at: http://tinyurl.com/microbedb
+* A presentation providing more information about MicrobeDB is online at: http://tinyurl.com/microbedb
 
 ###INSTALL###
 For installation information see:
-information/INSTALL/INSTALL
+<information/INSTALL/INSTALL>
 
 ###REQUIREMENTS###
-MySQL
-Perl
-Perl Modules
--BioPerl
--DBI
--DBD::mysql
--Parallel::ForkManager
--Log::Log4perl
--Sys::CPU
+* MySQL
+* Perl
+* Perl Modules
+** BioPerl
+** DBI
+** DBD::mysql
+** Parallel::ForkManager
+** Log::Log4perl
+** Sys::CPU
 
 ###QUICK START GUIDE###
 
-1)Connecting directly to MySQL database
+1. Connecting directly to MySQL database
 database name:microbedb
 
-"mysql -u perlapi -p"
+<mysql -u perlapi -p>
 
-2)Using MicrobeDB Perl API
+2. Using MicrobeDB Perl API
 At the start of your perl script you need:
 use lib '/your/path/to/MicrobeDB';
 use MicrobeDB::Search;
@@ -44,7 +44,7 @@ See example in "information/example_scripts";
 #########################
 
 ###Overview of MicrobeDB###
-*Note: Information below is available as a Powerpoint presentation in "information/Basic_Overview_MicrobeDB.ppt"
+* Note: Information below is available as a Powerpoint presentation in "information/Basic_Overview_MicrobeDB.ppt"
 
 MicrobeDB
 Centralized storage and access to completed Archaea and Bacteria genomes
