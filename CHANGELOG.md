@@ -1,5 +1,12 @@
 MicrobeDB ChangeLog
 =
+
+* Add aspera binary for Mac OS and make download_version.pl aware of it.
+
+* Fixed error causing bugs during load_version.pl associated with sub-directories not containing genomes. 
+
+* All scripts in /scripts directory have proper POD documentation. Access via --help option or perldoc.
+
 *Script under 'information/UPDATE/' allows user to check if their microbedb schema is matches their MicrobeDB code. 'information/DEVELOPERS_ONLY' contains a script to use after making schema changes that updates the schema version number and makes the sql diff file.
 
 * Updated Versions.pm slightly adding calls such as isvalid() which will return if a given version number is valid in the database.  A good test when doing diffs between versions, check if the version you're trying to update from is still loaded!

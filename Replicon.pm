@@ -100,6 +100,24 @@ my @_other = qw(
 
 use fields  @FIELDS;
 
+# Needed for outputting fasta files,
+# these are the allowed substitutions in the string
+my %header_lookup = (
+    'gene_id'    => '$gene->gene_id',
+    'ref'        => '$gene->protein_accnum',
+    'gi'         => '$gene->pid',
+    'rpv_id'     => '$gene->rpv_id',
+    'gpv_id'     => '$gene->gpv_id',
+    'start'      => '$gene->gene_start',
+    'end'        => '$gene->gene_end',
+    'length'     => '$gene->gene_length',
+    'locus_tag'  => '$gene->locus_tag',
+    'desc'       => '$gene->gene_product',
+    'rep_desc'   => '$self->definition',
+    'rep_accnum' => '$self->rep_accnum',
+    'rep_type'   => '$self->rep_type', 
+);
+
 sub new {
 	my ( $class, %arg ) = @_;
 
@@ -243,6 +261,48 @@ sub _retrieve_rep_seq{
     my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
     
     return $replicon->rep_seq();
+}
+
+sub write_fasta {
+    my ($self, %args) = @_;
+
+    my $outfile = $args{'filename'} || $self->file_name;
+
+    my $append = $args{'append'} || 0;
+
+    my $seqtype = $args{'seqtype'} || 'protein';
+
+    my $headerfmt = $args{'headerfmt'} || 'gi|#gi#|ref|#ref#| #desc# [#rep_desc#]';
+
+    # If the user already gave the filename an extension
+    # don't tack one on
+    unless($outfile =~ /\.\S{3}$/) {
+	$outfile .= ($seqtype eq 'protein' ? '.faa' : '.ffn');
+    }
+
+    # Build the outfile name
+    my $writeline = ($append?'>':'') . ">$outfile";
+
+    open(OUT, $writeline) or
+	croak "Error opening fasta file $outfile: $!\n";
+
+    foreach my $gene (@{$self->genes()}) {
+	unless(ref($gene) eq 'MicrobeDB::Gene') {
+	    croak "Only a Gene object can be returned here, this is a " . ref($gene);
+	}
+
+	next if(($seqtype eq 'protein') && !($gene->protein_seq));
+	next if(($seqtype eq 'dna') && !($gene->gene_seq));
+
+	# Evaluate the header format string
+	(my $header = $headerfmt) =~ s/#(\w+)#/$header_lookup{$1}/gee;
+	print OUT ">$header\n";
+	print OUT join("\n", grep { $_ } split(/(.{1,70})/,
+		      ($seqtype eq 'protein'?$gene->protein_seq:$gene->gene_seq)));
+	print OUT "\n";
+    }
+
+    close OUT;
 }
 
 sub table_names {    

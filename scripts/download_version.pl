@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
@@ -28,6 +28,7 @@ use Time::Local;
 use File::stat;
 use Getopt::Long;
 use Log::Log4perl;
+use Pod::Usage;
 use LWP::Simple;
 use Config;
 use Cwd qw(abs_path getcwd);
@@ -38,10 +39,15 @@ my ($path) = abs_path($0) =~ /^(.+)\//;
 chdir($path);
 };
 
-my $download_dir; my $logger_cfg; my $ftp_flag;
+my ($download_dir,$logger_cfg,$ftp_flag,$help);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "logger=s" => \$logger_cfg,
-                     "ftp" => \$ftp_flag,);
+                     "ftp" => \$ftp_flag,
+		     "help"=> \$help)or pod2usage(2);
+
+pod2usage(-verbose=>2) if $help;
+
+pod2usage($0.': You must specify a download directory.') unless defined $download_dir;
 
 # Find absolute path of script, yes we have to
 # do this again because of scope issues
@@ -52,55 +58,60 @@ $download_dir .= '/' unless $download_dir =~ /\/$/;
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
-# Set some base logging settings if the logger conf doesn't exist
-$logger_cfg = q/
-    log4perl.rootLogger = INFO, Screen
-
-    log4perl.appender.Screen                          = Log::Log4perl::Appender::Screen
-    log4perl.appender.Screen.layout.ConversionPattern = [%p] (%F line %L) %m%n
-/ unless(-f $logger_cfg);
 Log::Log4perl::init($logger_cfg);
 my $logger = Log::Log4perl->get_logger;
 
+$logger->info("Downloading files to directory: $download_dir");
+
 if($ftp_flag){    
     #Download all genomes from NCBI using FTP
+    $logger->info("Downloading files using FTP option");
     $download_dir = NCBIftp_wget3($download_dir);
 }else{
     #Download all genomes from NCBI using ASPERA
+    $logger->info("Downloading files using Aspera option");
     $download_dir = NCBI_aspera($download_dir);
 }
-
-#get_genomeprojfiles($dir);
-$logger->info("Using $download_dir");
 
 sub NCBI_aspera{
     my $download_dir= shift;
 	
     my $remotedir  = 'genomes/Bacteria/';
-#    my $parentdir  = "$download_parent_dir";
-#    my $prefix     = 'Bacteria';
-#    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
-    my @file_types = qw/faa ffn fna frn gbk gff rpt/;
+    #all file types
+    #my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+    
+    #File types required by MicrobeDB
+    #my @file_types = qw/gbk/;
+    
+    #Default file types downloaded
+    my @file_types = qw/gbk faa ffn fna frn gff rpt/;
+    
     my $parameters = '';
-    my $overwrite  = 0;                                   #default is not to overwrite
-    my $get_gprj = 1;    #default is to get the organism info and complete genome files
     my $logdir = $download_dir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
-    `mkdir $logdir` unless -d $logdir;
-    die "The local directory doesn't exist, please create it first\n"
-      unless ( -e $download_dir );
+    `mkdir -p $logdir` unless -d $logdir;
+    $logger->logdie("The local directory doesn't exist, please create it first") unless  -e $download_dir ;
 
     #check if 32 bit or 64 bit
     my $ascp_dir;
-    if($Config{archname} =~ /x86_64/){
-	$ascp_dir='aspera_64';
+    if($Config{osname} =~/linux/){
+	if($Config{archname} =~ /x86_64/){
+	    $ascp_dir='aspera_64';
+	}else{
+	    $ascp_dir='aspera_32';
+	}
+    }elsif($Config{osname} =~ /darwin/){
+	    $ascp_dir='aspera_mac';
+	
+    }elsif($Config{osname} =~ /MSWin32/){
+	$logger->logdie("Looks like you are running Windows. MicrobeDB doesn't run on Windows yet.");      
     }else{
-	$ascp_dir='aspera_32';
+	$logger->logdie("Can't figure out what OS you are using so can't use aspera to download. You can try downloading by FTP instead by using --ftp option.");
     }
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
     if ( $parameters eq '' ) {
-	$parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 50M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
+	$parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 100M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
     }
 
     #Create the log file if it doesn't exist already
@@ -109,7 +120,8 @@ sub NCBI_aspera{
 	my $remotefile='all.'.$_.'.tar.gz';
 	&runascp( $parameters, $remotedir, $remotefile,$download_dir );
     }
-    if ($get_gprj) { &get_genomeprojfiles($download_dir); }
+
+     &get_genomeprojfiles($download_dir); 
     
 
 }
@@ -132,8 +144,7 @@ sub runascp{
     }
 
     if($status){
-	$logger->fatal("Could not download file: $remotefile".", after $count attempts!");
-	die;
+	$logger->logdie("Could not download file: $remotefile".", after $count attempts!");
     }
 }
     
@@ -144,17 +155,12 @@ sub NCBIftp_wget3 {
     my $host       = 'ftp://ftp.ncbi.nih.gov';
     my $remotedir  = 'genomes/Bacteria/all.*';
     my $parameters = '';
-    my $overwrite  = 0;                                   #default is not to overwrite
-    my $get_gprj = 1;    #default is to get the organism info and complete genome files
-    my $logdir = $localdir . '/log/';
+    my $logdir = $localdir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
-    `mkdir $logdir` unless -d $logdir;
+    `mkdir -p $logdir` unless -d $logdir;
 
-    $logger->fatal("The local directory doesn't exist, please create it first\n")
-      unless ( -e $localdir );
-    die "The local directory doesn't exist, please create it first\n"
-      unless ( -e $localdir );
-
+    $logger->logdie("The local directory doesn't exist, please create it first\n") unless  -e $localdir ;
+   
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
     if ( $parameters eq '' ) {
@@ -163,20 +169,8 @@ sub NCBIftp_wget3 {
 
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
-
-    #if the output dir exists, put a warning in log and overwrite if asked
-    if ( -e $localdir ) {
-        if ($overwrite) {
-	    $logger->warn("Directory $localdir already exists, files is being overwritten\n");
-            &runwget;
-            if ($get_gprj) { &get_genomeprojfiles; }
-        } else {
-	    $logger->error("Update failed on $localdir because directory already exists \n");
-        }
-    } else {
-        &runwget( $parameters, $host, $remotedir );
-        if ($get_gprj) { &get_genomeprojfiles($localdir); }
-    }
+    &runwget( $parameters, $host, $remotedir );
+    &get_genomeprojfiles($localdir); 
 
     #return the directory that contains the newly downloaded genomes from NCBI
     return $localdir;
@@ -192,8 +186,15 @@ sub runwget {
     while ( $status != 0 && $count < 5 ) {
     	my $wget_cmd = "wget $parameters $host/$remotedir";
         $status = system($wget_cmd);
-        sleep 120 unless $status == 0;
+        
+	if($status){
+	    $logger->warn("Problem with downloading! Waiting 60 seconds before attempting again.");
+	    sleep 60;
+	}
         $count++;
+    }
+    if($status){
+	$logger->logdie("Could not complete downloading, after $count attempts!");
     }
 }
 
@@ -201,7 +202,7 @@ sub get_genomeprojfiles {
     my ($localdir) = @_;
 
     my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
-    my $ncbi_orginfo_file=$localdir."/NCBI_orginfo.txt";
+    my $ncbi_orginfo_file=$localdir."NCBI_orginfo.txt";
 
     $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_orginfo_url");
 
@@ -211,7 +212,7 @@ sub get_genomeprojfiles {
     close $ORGINFO;
 
     my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
-    my $ncbi_compgen_file=$localdir."/NCBI_completegenomes.txt";
+    my $ncbi_compgen_file=$localdir."NCBI_completegenomes.txt";
 
     $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url");
 
@@ -234,3 +235,55 @@ sub createfile {
     if ( $createstatus == 0 ) { chmod 0666, $filename; }
     else { writetolog("File $filename cannot be created\n"); }
 }
+
+
+__END__
+
+=head1 Name
+
+download_version.pl - Downloads all RefSeq bacteria and archaea genomes from NCBI.
+
+=head1 USAGE
+
+download_version.pl [-f -l <logger.conf> -h] -d <directory>
+
+E.g.
+
+#using aspera downloader
+download_version.pl -d /share/genomes/
+
+#using traditional ftp downloader
+download_version.pl -f -d /share/genomes/
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-f, --ftp >
+
+Use FTP download instead of aspera downloader.
+
+=item B<-d, --directory <dir>>
+
+Directory where genome files will be stored.
+
+=item B<-l, --logger <logger config file>>
+
+Specify an alternative logger.conf file.
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<download_version.pl> This script downloads all RefSeq bacteria and archaea genomes from the NCBI FTP site. Download time will vary depending on your download speed and the mood of NCBI's FTP server, but expect at least a few hours. Files are downloaded in compressed format (tar.gz). Use unpack_version.pl to expand all files into proper flat file structure where each genome has its own directory.
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
+
