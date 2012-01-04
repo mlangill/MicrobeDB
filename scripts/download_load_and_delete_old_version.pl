@@ -29,6 +29,8 @@
 
 #Author Morgan Langille, http://morganlangille.com
 
+$|++;
+
 use strict;
 use warnings;
 use Getopt::Long;
@@ -118,10 +120,6 @@ if($?) {
     die;
 }
 
-$logger->info("Moving symlink for parent directory");
-unlink "$download_parent_dir/$prefix" if ( -l "$download_parent_dir/$prefix");
-symlink "$download_dir", "$download_parent_dir/$prefix" or $logger->error("Unable to create symlink from $download_dir to $download_parent_dir/$prefix\n");
-
 $logger->info("Finished downloading genomes from NCBI.\n");
 
 #unpack genome files
@@ -160,5 +158,9 @@ if($?) {
     $logger->fatal("Error cleaning up old versions of MicrobeDB: $!");
     die;
 }
+
+$logger->info("Moving symlink for parent directory");
+unlink "$download_parent_dir/$prefix" if ( -l "$download_parent_dir/$prefix");
+symlink "$download_dir", "$download_parent_dir/$prefix" or $logger->error("Unable to create symlink from $download_dir to $download_parent_dir/$prefix\n");
 
 $logger->info("Finished deleting old versions of MicrobeDB");
