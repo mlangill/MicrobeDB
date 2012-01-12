@@ -5,13 +5,13 @@ MicrobeDB
 
 * MicrobeDB contains three main features. 
 
-1. All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
+    1. All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
 
-2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
+    2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
 
-3. A Perl API is provided to interface with the MySQL database and allow easy use of the data.
+    3. A Perl API is provided to interface with the MySQL database and allow easy use of the data.
 
-* A presentation providing more information about MicrobeDB is online at: http://tinyurl.com/microbedb
+* A presentation providing an overview of MicrobeDB is at [information/MicrobeDB_overview.pdf](https://github.com/mlangill/MicrobeDB/blob/master/information/MicrobeDB_overview.pdf)
 
 ##REQUIREMENTS##
 * MySQL
