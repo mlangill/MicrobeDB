@@ -14,7 +14,7 @@ If you had downloaded MicrobeDB from GitHub manually the first time you installe
 ##Step 2: Update your MicrobeDB database##
 Sometimes the MySQL database schema needs to be changed. To check and install any changes to run the script:
 
-./update_database_schema.pl
+    ./update_database_schema.pl
 
 ##Questions/Comments##
 * Contact: Morgan Langille
