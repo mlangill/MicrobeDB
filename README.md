@@ -1,9 +1,10 @@
 MicrobeDB
 =
 ##ABOUT##
-* MicrobeDB provides centralized local storage and access to completed Archaea and Bacteria genomes.
+* MicrobeDB provides centralized local storage and access to completed archaeal and bacterial genomes.
 
 * MicrobeDB contains three main features. 
+
 1. All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
 
 2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
@@ -24,13 +25,16 @@ MicrobeDB
     * Sys::CPU
 
 ##INSTALL##
-For installation information see [INSTALL.md](https://github.com/mlangill/MicrobeDB/blob/master/information/INSTALL/INSTALL.md) 
-and if you are using a Mac also see [MAC_INSTALL](https://github.com/mlangill/MicrobeDB/blob/master/information/INSTALL/MAC_INSTALL.md).
+* For installation information see [information/INSTALL/INSTALL.md](https://github.com/mlangill/MicrobeDB/blob/master/information/INSTALL/INSTALL.md).
+
+##Updating##
+* To update your MicrobeDB software see [information/UPDATE/UPDATE.md](https://github.com/mlangill/MicrobeDB/blob/master/information/UPDATE/UPDATE.md).
 
 ##Usage##
 Once MicrobeDB is installed you can connect to the MySQL database using any traditional MySQL method:
 
 1. Connecting directly to MySQL database via command line client
+
         mysql -u microbedb -p
 
 2. Using a client desktop application such as [MySQL Workbench](http://www.mysql.com/products/workbench/)
@@ -45,14 +49,17 @@ Once MicrobeDB is installed you can connect to the MySQL database using any trad
             
             use MicrobeDB::Search;
 
-    * See examples using the MicrobeDB API in [example scripts] (https://github.com/mlangill/MicrobeDB/tree/master/information/example_scripts)
+    * See examples using the MicrobeDB API in [information/example_scripts] (https://github.com/mlangill/MicrobeDB/tree/master/information/example_scripts/).
 
 
 ##Overview of MicrobeDB##
 
 * Genome/Flat files are stored in one central location
+
 * Information at the genome project, chromosome, and gene level are parsed and stored in a MySQL database including sequences and annotations 
+
 * The files and the database can be updated easily via a single script
+
 * The genome files are stored in consistent structure with many different file types:
 
     * Bacteria_2009-09-01
@@ -88,3 +95,8 @@ Once MicrobeDB is installed you can connect to the MySQL database using any trad
     * Gene
         * Contains gene annotations and also the DNA and protein sequences (if protein coding gene)
         * E.g. gid, pid, protein_accnum, gene_type, gene_start, gene_end, gene_length, gene_strand, gene_name, locus_tag, gene_product, gene_seq, protein_seq
+
+
+##Questions/Comments##
+* Contact: Morgan Langille
+* Email: morgan.g.i.langille@gmail.com
