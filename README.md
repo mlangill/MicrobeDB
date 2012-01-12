@@ -11,7 +11,7 @@ MicrobeDB
 
     3. A Perl API is provided to interface with the MySQL database and allow easy use of the data.
 
-* A presentation providing an overview of MicrobeDB is at [information/MicrobeDB_overview.pdf](https://github.com/mlangill/MicrobeDB/blob/master/information/MicrobeDB_overview.pdf)
+* A presentation providing an overview of MicrobeDB is at [information/MicrobeDB_Overview.pdf](http://www.slideshare.net/mlangill/basic-overview-microbedb)
 
 ##REQUIREMENTS##
 * MySQL
