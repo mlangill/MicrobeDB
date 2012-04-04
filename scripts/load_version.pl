@@ -188,7 +188,7 @@ Mandatory. A directory containing directories of genomes to be loaded into Micro
 
 =item B<-c, --custom>
 
-Signifies that this directory contains non-downloaded NCBI genomes. Genomes are assigned version_id 0.
+Signifies that this directory contains unpublished genomes not from NCBI. Genomes are assigned version_id 0.
 
 =item B<-p, --parallel [<# of proc>]>
 
@@ -209,7 +209,7 @@ Displays the entire help documentation.
 B<load_version.pl> This script loads all genomes from a recent download into the MicrobeDB database. 
 The given directory should contain several sub-directories with each containing a genome (one or more genbank files). 
 This script is normally run after "unpack_version.pl".
-This script can also be used to add non-RefSeq (personal unpublished) genomes. It is recommended to use the --custom option when loading non-RefSeq genomes so that they are stored somewhat seperate from other versions and always with version_id=0. 
+This script can also be used to add personal/unpublished genomes. It is recommended to use the --custom option when loading non-NCBI genomes so that they are stored somewhat seperate from other versions and always with version_id=0. 
 
 =head1 AUTHOR
 

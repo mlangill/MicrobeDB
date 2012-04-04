@@ -35,10 +35,11 @@ use Bio::SeqIO;
 
 my $prefix = 'Bacteria';
 
-my ($download_parent_dir,$logger_cfg,$help,$parallel);;
+my ($download_parent_dir,$logger_cfg,$help,$parallel,$special_download_options);
 my $res = GetOptions("directory=s" => \$download_parent_dir,
 		     "parallel:i"=>\$parallel,
 		     "logger=s" => \$logger_cfg,
+		     "special_download_options=s"=>\$special_download_options,
 		     "help"=>\$help,
     )or pod2usage(2);
 
@@ -89,7 +90,7 @@ $logger->info("Making download directory: $download_dir");
 
 #Download all genomes from NCBI
 $logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; ~1-4hours)\n");
-my $cmd = "$path/download_version.pl -d $download_dir";
+my $cmd = "$path/download_version.pl -d $download_dir $downloader_options";
 $cmd .= " -l $logger_cfg" if(-f $logger_cfg);
 system($cmd);
 $logger->logdie("Error with downloading the new version: $!") if $?;
@@ -162,11 +163,15 @@ download_load_and_delete_old_version.pl -p 2 -d /share/genomes/
 
 =item B<-d, --directory <dir>>
 
-The directory where MicrobeDB should place all flat files (Note: a date stamped sub-directory will be created for each update)
+The directory where MicrobeDB should place all flat files (Note: a date stamped sub-directory will be created for each update) (MANDATORY)
 
 =item B<-p, --parallel [<# of proc>]>
 
 Using this option without a value will use all CPUs on machine, while giving it a value will limit to that many CPUs. Without option only one CPU is used. 
+
+=item B<-s, --special_download_options>
+
+This allows options to be passed to the B<download_version.pl> script. Ensure that the options are enclosed in single quotes (e.g. -s '-s Pseudomonas -o').
 
 =item B<-l, --logger <logger config file>>
 

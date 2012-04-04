@@ -39,10 +39,13 @@ my ($path) = abs_path($0) =~ /^(.+)\//;
 chdir($path);
 };
 
-my ($download_dir,$logger_cfg,$ftp_flag,$help);
+my ($download_dir,$logger_cfg,$ftp_flag,$draft_flag,$draft_only_flag,$search,$help);
 my $res = GetOptions("directory=s" => \$download_dir,
+		     "search=s" =>\$search,
 		     "logger=s" => \$logger_cfg,
                      "ftp" => \$ftp_flag,
+		     "incomplete"=>\$draft_flag,
+		     "only_incomplete"=>\$draft_only_flag,
 		     "help"=> \$help)or pod2usage(2);
 
 pod2usage(-verbose=>2) if $help;
@@ -61,6 +64,21 @@ $logger_cfg = "logger.conf" unless($logger_cfg);
 Log::Log4perl::init($logger_cfg);
 my $logger = Log::Log4perl->get_logger;
 
+if($search||$draft_flag||$draft_only_flag){
+    $logger->info("Using FTP to download since --search,--incomplete, and/or --only_incomplete option(s) selected.");
+    $ftp_flag=1;
+}
+
+#all file types
+#my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+
+#File types required by MicrobeDB
+#my @file_types = qw/gbk/;
+
+#Default file types downloaded
+my @file_types = qw/gbk faa ffn fna frn gff rpt/;
+   
+
 $logger->info("Downloading files to directory: $download_dir");
 
 if($ftp_flag){    
@@ -77,14 +95,6 @@ sub NCBI_aspera{
     my $download_dir= shift;
 	
     my $remotedir  = 'genomes/Bacteria/';
-    #all file types
-    #my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
-    
-    #File types required by MicrobeDB
-    #my @file_types = qw/gbk/;
-    
-    #Default file types downloaded
-    my @file_types = qw/gbk faa ffn fna frn gff rpt/;
     
     my $parameters = '';
     my $logdir = $download_dir . 'log/';
@@ -153,13 +163,14 @@ sub NCBIftp_wget3 {
     my $localdir= shift;
 	
     my $host       = 'ftp://ftp.ncbi.nih.gov';
-    my $remotedir  = 'genomes/Bacteria/all.*';
-    my $parameters = '';
+
     my $logdir = $localdir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
     `mkdir -p $logdir` unless -d $logdir;
 
     $logger->logdie("The local directory doesn't exist, please create it first\n") unless  -e $localdir ;
+
+    my $parameters = '';
    
     #s parameters: turn on mirroring; no host directory;
     # non-verbose; exclude .val files; .listing file kept;
@@ -169,12 +180,60 @@ sub NCBIftp_wget3 {
 
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
-    &runwget( $parameters, $host, $remotedir );
+
+    
+    unless($draft_only_flag){
+	#Download genomes from RefSeq
+	if($search){
+	    
+	    #only download genomes matching users search criteria
+	    $logger->debug("Getting list of directories and files from NCBI.");
+	    my @file_list=get_ftp_file_list($host.'/genomes/Bacteria/');
+	    my @good_dir=grep{/^$search/i}@file_list;
+	    $logger->info("Found ".scalar(@good_dir)." genomes that matched the search: $search");
+	    foreach my $genome_dir (@good_dir){
+		foreach my $file_type (@file_types){
+		    my $remotedir = 'genomes/Bacteria/'.$genome_dir.'/*.'.$file_type;	    
+		    &runwget( $parameters, $host, $remotedir );
+		}
+	    }
+	}else{
+	    foreach my $file_type (@file_types){
+		my $remotedir  = 'genomes/Bacteria/all.'.$file_type.'.tar.gz';
+		&runwget( $parameters, $host, $remotedir );
+	    }	
+	}
+    }
+
+    
+    if($draft_flag|| $draft_only_flag){
+	#Download draft genomes
+	$logger->info("Downloading draft genomes now.");
+	my $root_dir="genomes/Bacteria_DRAFT/";
+	$logger->debug("Getting list of directories and files from NCBI draft genomes.");
+	my @file_list=get_ftp_file_list($host.'/'.$root_dir);
+	my @good_dir;
+	if($search){
+	    #only download genomes matching users search criteria
+	    @good_dir=grep{/^$search/i}@file_list;
+	    $logger->info("Found ".scalar(@good_dir)." genomes that matched the search: $search");
+	}else{
+	    @good_dir=@file_list
+	}
+	foreach my $genome_dir (@good_dir){
+	    foreach my $file_type (@file_types){
+		my $remotedir = $root_dir.$genome_dir.'/*contig.'.$file_type.'.tgz';	    
+		&runwget( $parameters, $host, $remotedir );
+	    }
+	}
+    }
+
     &get_genomeprojfiles($localdir); 
 
     #return the directory that contains the newly downloaded genomes from NCBI
     return $localdir;
 }
+
 
 
 #the simple subroutine that makes a system call to wget
@@ -198,6 +257,30 @@ sub runwget {
     }
 }
 
+sub get_ftp_file_list{
+    my ($ftp_site)=@_;
+    
+    my $list_cmd="wget -q --no-remove-listing $ftp_site";
+    my $status=system($list_cmd);
+    if($status){
+        $logger->logdie("Can't get list of files from $ftp_site");
+    }
+    my $list_file=".listing";
+    open(my $LIST,'<',$list_file) || $logger->logdie("Couldn't open the ftp listling file, $list_file, from $ftp_site");
+    my @file_list;
+    while(<$LIST>){
+	chomp;
+	my @fields=split;
+	push @file_list,$fields[8];
+    }
+    close($LIST);
+    #remove the tmp files created
+    unlink ($list_file);
+    unlink('index.html');
+
+    return @file_list;
+
+}
 sub get_genomeprojfiles {
     my ($localdir) = @_;
 
@@ -241,31 +324,50 @@ __END__
 
 =head1 Name
 
-download_version.pl - Downloads all RefSeq bacteria and archaea genomes from NCBI.
+download_version.pl - Downloads bacteria and archaea genomes from NCBI.
 
 =head1 USAGE
 
-download_version.pl [-f -l <logger.conf> -h] -d <directory>
+download_version.pl [-s <search> -i -o -f -l <logger.conf> -h] -d <directory>
 
-E.g.
+Examples:
 
-#using aspera downloader
-download_version.pl -d /share/genomes/
+##Download all RefSeq genomes using Aspera downloader
 
-#using traditional ftp downloader
-download_version.pl -f -d /share/genomes/
+B<download_version.pl -d /share/genomes/>
+
+##OR Download a subset of RefSeq genomes
+
+B<download_version.pl -d /share/genomes/ -s Pseudomonas>
+
+##OR download a subset of both completed and draft genomes 
+
+B<download_version.pl -d /share/genomes/ -s Escherichia_coli -i>
+
 
 =head1 OPTIONS
 
 =over 4
 
-=item B<-f, --ftp >
-
-Use FTP download instead of aspera downloader.
-
 =item B<-d, --directory <dir>>
 
-Directory where genome files will be stored.
+Directory where genome files will be stored. (MANDATORY)
+
+=item B<-s, --search <name of genome> >
+
+Only download genomes that "match" your search of choice. Search matches from beginning of genome name which is usually the Genus name of the organism. Therefore, "Escherichia" will download all genomes with that Genus or "Escherichia_coli" will download all E.coli strains. "coli" will not match anything. Search is NOT case-sensitive.  
+
+=item B<-i, --incomplete>
+
+In addition to completed (RefSeq) genomes, download all (or a subset if using the -s option) incomplete/draft genomes. 
+
+=item B<-o, --only_incomplete>
+
+Download only incomplete/draft genomes. No complete (RefSeq) genomes will be downloaded.
+
+=item B<-f, --ftp >
+
+Use FTP download instead of the default Aspera downloader. Note FTP is used if -s, -o, or -i options are used.
 
 =item B<-l, --logger <logger config file>>
 
@@ -279,7 +381,7 @@ Displays the entire help documentation.
 
 =head1 DESCRIPTION
 
-B<download_version.pl> This script downloads all RefSeq bacteria and archaea genomes from the NCBI FTP site. Download time will vary depending on your download speed and the mood of NCBI's FTP server, but expect at least a few hours. Files are downloaded in compressed format (tar.gz). Use unpack_version.pl to expand all files into proper flat file structure where each genome has its own directory.
+B<download_version.pl> This script downloads bacteria and archaea genomes from the NCBI FTP site. Default options will download ALL completed RefSeq genomes using the Aspera downloader. Options are available to also (or only) download incomplete/draft genomes. In addition, a subset of genomes can be downloaded using the --search option, which is useful for testing or for those interested in a particular group of organisms (e.g all "Pseudomonas"). Download time will vary depending on your download speed and the mood of NCBI's FTP server, but expect at least a few hours. Depending on the options used some files are downloaded in compressed format (tar.gz) and will require the use of B<unpack_version.pl> to expand all files into proper flat file structure where each genome has its own directory.
 
 =head1 AUTHOR
 

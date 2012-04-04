@@ -18,7 +18,7 @@
 #along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
 
 #Unpacks (tar/gzip) genome files from ftp download
-#This is usually run after download_version.pl (by the download_load_and_delete_old_version.pl)
+#This is usually run after download_version.pl either manually or by the download_load_and_delete_old_version.pl.
 
 use strict;
 use warnings;
@@ -26,6 +26,7 @@ use Parallel::ForkManager;
 use Getopt::Long;
 use Pod::Usage;
 use Log::Log4perl;
+use File::Basename;
   
 my ($download_dir,$logger_cfg,$help,$parallel);
 my $res = GetOptions("directory=s" => \$download_dir,
@@ -64,6 +65,9 @@ if(defined($parallel)){
 chdir($download_dir);
 my @compressed_files = glob($download_dir .'all.*.tar.gz');
 
+#Also decompress individual .tgz files within genome directories (format of incomplete/draft genomes)
+push(@compressed_files,glob($download_dir.'*/*.tgz'));
+
 $logger->logdie("Didn't find any files to uncompress. Are you sure your directory: \"$download_dir\" contains compressed files?") unless @compressed_files;
 
 
@@ -73,8 +77,15 @@ my $pm = new Parallel::ForkManager($cpu_count);
 for my $tarball (@compressed_files){
     my $pid = $pm->start and next; 
     $logger->info("Unpacking $tarball");
-    system("tar xzf $tarball");
-   
+    
+    my $dir=dirname($tarball);
+
+    if($dir){
+	system("tar xvf $tarball -C $dir");
+    }else{	
+	system("tar xzf $tarball");
+    }
+
     $logger->logdie("Unpacking of $tarball failed!") if $?;
     
     $logger->info("Done unpacking and now deleting $tarball");

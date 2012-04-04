@@ -1,6 +1,10 @@
 MicrobeDB ChangeLog
 =
 
+* Users can choose to download only a subset of all genomes from NCBI (see -s option in download_version.pl)
+
+* Support for incomplete/draft genomes from NCBI (see -i and -o options in download_version.pl)
+
 * MySQL database name can be set by the user using the environment variable 'MicrobeDB'
 
 * Added a write_fasta() routine to Replicon.pm; where you can write a fasta file and use a formatting string to set the sequence header format
