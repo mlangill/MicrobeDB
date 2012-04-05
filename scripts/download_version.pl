@@ -73,10 +73,10 @@ if($search||$draft_flag||$draft_only_flag){
 #my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
 
 #File types required by MicrobeDB
-#my @file_types = qw/gbk/;
+my @file_types = qw/gbk/;
 
 #Default file types downloaded
-my @file_types = qw/gbk faa ffn fna frn gff rpt/;
+#my @file_types = qw/gbk faa ffn fna frn gff rpt/;
    
 
 $logger->info("Downloading files to directory: $download_dir");
@@ -101,6 +101,9 @@ sub NCBI_aspera{
     my $logfile = $logdir . "NCBI_FTP.log";
     `mkdir -p $logdir` unless -d $logdir;
     $logger->logdie("The local directory doesn't exist, please create it first") unless  -e $download_dir ;
+
+    &get_genomeprojfiles($download_dir); 
+
 
     #check if 32 bit or 64 bit
     my $ascp_dir;
@@ -131,7 +134,6 @@ sub NCBI_aspera{
 	&runascp( $parameters, $remotedir, $remotefile,$download_dir );
     }
 
-     &get_genomeprojfiles($download_dir); 
     
 
 }
@@ -181,17 +183,21 @@ sub NCBIftp_wget3 {
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
 
+    #get information about genomes
+    &get_genomeprojfiles($localdir); 
+
     
     unless($draft_only_flag){
 	#Download genomes from RefSeq
+	$logger->info("Downloading RefSeq genomes now.");
 	if($search){
-	    
 	    #only download genomes matching users search criteria
 	    $logger->debug("Getting list of directories and files from NCBI.");
 	    my @file_list=get_ftp_file_list($host.'/genomes/Bacteria/');
 	    my @good_dir=grep{/^$search/i}@file_list;
-	    $logger->info("Found ".scalar(@good_dir)." genomes that matched the search: $search");
+	    $logger->info("Found ".scalar(@good_dir)." RefSeq genomes that matched the search: $search");
 	    foreach my $genome_dir (@good_dir){
+		$logger->info("Downloading genome: $genome_dir");
 		foreach my $file_type (@file_types){
 		    my $remotedir = 'genomes/Bacteria/'.$genome_dir.'/*.'.$file_type;	    
 		    &runwget( $parameters, $host, $remotedir );
@@ -216,19 +222,18 @@ sub NCBIftp_wget3 {
 	if($search){
 	    #only download genomes matching users search criteria
 	    @good_dir=grep{/^$search/i}@file_list;
-	    $logger->info("Found ".scalar(@good_dir)." genomes that matched the search: $search");
+	    $logger->info("Found ".scalar(@good_dir)." draft genomes that matched the search: $search");
 	}else{
 	    @good_dir=@file_list
 	}
 	foreach my $genome_dir (@good_dir){
+	    $logger->info("Downloading genome: $genome_dir");
 	    foreach my $file_type (@file_types){
 		my $remotedir = $root_dir.$genome_dir.'/*contig.'.$file_type.'.tgz';	    
 		&runwget( $parameters, $host, $remotedir );
 	    }
 	}
     }
-
-    &get_genomeprojfiles($localdir); 
 
     #return the directory that contains the newly downloaded genomes from NCBI
     return $localdir;
@@ -284,6 +289,10 @@ sub get_ftp_file_list{
 sub get_genomeprojfiles {
     my ($localdir) = @_;
 
+    #Note: Could also get these from ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_0.txt
+    #Note2: Supposedly these are going to be phased out and replaced by: ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/prokaryotes.txt
+    #However, this new file is very limited (does not contain any organism information), and is using the new BioProject Accession (PRJNAXXXX) which is not being well supported by NCBI yet (i.e older genome id is still in directory name and all genbank records).
+
     my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
     my $ncbi_orginfo_file=$localdir."NCBI_orginfo.txt";
 
@@ -302,7 +311,46 @@ sub get_genomeprojfiles {
     my $ncbi_compgen_content   = get($ncbi_compgen_url);
     open( my $COMPGEN, '>',$ncbi_compgen_file ) or die "can't create file $ncbi_compgen_file";
     print $COMPGEN $ncbi_compgen_content;
+    
+
+    my $ncbi_incompgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=2&dump=selected';
+
+    $logger->info("Downloading incomplete genome information from NCBI at: $ncbi_incompgen_url");
+
+    my $ncbi_incompgen_content   = get($ncbi_incompgen_url);
+
+    $logger->debug("Formatting incomplete genome table to match completed genome table.");
+    
+    my $formatted_incompgen_content=format_incomplete_table_to_match_ncbi_complete_table($ncbi_incompgen_content);
+    $logger->info("Appending information on incomplete genomes to $ncbi_compgen_file");
+    print $COMPGEN $formatted_incompgen_content;
     close $COMPGEN;
+
+}
+
+sub format_incomplete_table_to_match_ncbi_complete_table{
+    my $table=shift;
+    my @lines=split(/\n/,$table);
+
+    #remove header lines
+    shift(@lines);
+    shift(@lines);
+    
+    my @formatted_lines;
+    foreach my $line (@lines){
+	#Table we want has 15 columns, so pre-fill them here
+	my @good_fields=('')x15;
+
+	my @fields=split(/\t/,$line);
+
+	#Map fields from incomplete to complete (need to look at tables manually to figure out indices for arrays)
+	@good_fields[0..5]=@fields[0..5];
+	@good_fields[6,7]=@fields[11,12];
+	$good_fields[10]=$fields[13];
+	$good_fields[15]=$fields[14];
+	push(@formatted_lines,join("\t",@good_fields));
+    }
+    return join("\n",@formatted_lines);
 }
 
 sub writetolog {
