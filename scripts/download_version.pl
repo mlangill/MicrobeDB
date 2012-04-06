@@ -39,18 +39,45 @@ my ($path) = abs_path($0) =~ /^(.+)\//;
 chdir($path);
 };
 
-my ($download_dir,$logger_cfg,$ftp_flag,$draft_flag,$draft_only_flag,$search,$help);
+#Specify valid file types for download
+my @valid_file_types=qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
+#create a hash with valid file types as keys
+my %valid_file_type_lookup = map {$_=>1}@valid_file_types;
+
+my ($download_dir,$logger_cfg,$ftp_flag,$draft_flag,$draft_only_flag,$search,@types_of_files,$help);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "search=s" =>\$search,
 		     "logger=s" => \$logger_cfg,
                      "ftp" => \$ftp_flag,
 		     "incomplete"=>\$draft_flag,
 		     "only_incomplete"=>\$draft_only_flag,
+		     "types_of_files=s"=>\@types_of_files,
 		     "help"=> \$help)or pod2usage(2);
 
 pod2usage(-verbose=>2) if $help;
 
 pod2usage($0.': You must specify a download directory.') unless defined $download_dir;
+
+#user can specify multiple file types using a ',' (e.g. -t asn,faa) and/or using multiple -t options (e.g. -t asn -t faa)
+@types_of_files = split(/,/,join(',',@types_of_files));
+
+#this contains a list of valid file types we will download (always need gbk type so add it here)
+my @file_types= qw/gbk/;
+#my @file_types = qw/gbk faa ffn fna frn gff rpt/;
+   
+
+#check if user provides additional file types to download
+if(@types_of_files){
+    foreach my $user_type (@types_of_files){
+	#check to make sure it is a valid file type
+	if(exists $valid_file_type_lookup{$user_type}){
+	    push @file_types, $user_type;
+	}else{
+	    pod2usage($0.": The file type: \"$user_type\" is not valid with -t option. Use download_version.pl -h to see a list of valid file types.\n");
+	}
+    }
+}
+
 
 # Find absolute path of script, yes we have to
 # do this again because of scope issues
@@ -68,16 +95,6 @@ if($search||$draft_flag||$draft_only_flag){
     $logger->info("Using FTP to download since --search,--incomplete, and/or --only_incomplete option(s) selected.");
     $ftp_flag=1;
 }
-
-#all file types
-#my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
-
-#File types required by MicrobeDB
-my @file_types = qw/gbk/;
-
-#Default file types downloaded
-#my @file_types = qw/gbk faa ffn fna frn gff rpt/;
-   
 
 $logger->info("Downloading files to directory: $download_dir");
 
@@ -376,7 +393,7 @@ download_version.pl - Downloads bacteria and archaea genomes from NCBI.
 
 =head1 USAGE
 
-download_version.pl [-s <search> -i -o -f -l <logger.conf> -h] -d <directory>
+download_version.pl [-s <search> -t <file_type> -i -o -f -l <logger.conf> -h] -d <directory>
 
 Examples:
 
@@ -392,6 +409,9 @@ B<download_version.pl -d /share/genomes/ -s Pseudomonas>
 
 B<download_version.pl -d /share/genomes/ -s Escherichia_coli -i>
 
+##OR download additional types of genome files (in addition to .gbk)
+
+B<download_version.pl -d /share/genomes/ -t fna,faa,gff>
 
 =head1 OPTIONS
 
@@ -412,6 +432,12 @@ In addition to completed (RefSeq) genomes, download all (or a subset if using th
 =item B<-o, --only_incomplete>
 
 Download only incomplete/draft genomes. No complete (RefSeq) genomes will be downloaded.
+
+=item B<-t, --types_of_files <file_type1,file_type2,etc.>>
+
+Download genome data in other file types (in addition to required .gbk files). File types must be delimited with a ','. Valid file types are:
+
+B<GeneMark, Glimmer3, Prodigal, asn, cog, faa, ffn, fna, frn, gbk, gff, ptt, rnt, rps, rpt, val>
 
 =item B<-f, --ftp >
 
