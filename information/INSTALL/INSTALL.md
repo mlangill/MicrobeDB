@@ -18,7 +18,7 @@ You will need to install the following software BEFORE proceeding with the Micro
 ##Install MySQL##
 
 ####MAC OSX: Install MySQL####
-1. Visit http://www.mysql.com/downloads/mysql/ and download appropriate package.
+1. Visit http://www.mysql.com/downloads/mysql/ and download appropriate package (*.dmg version is recommended).
 
 2. Install both the MySQL-your_version.pkg and MySQL StartupItem.pkg (so the mysql server starts every time the computer starts). 
 
@@ -77,8 +77,34 @@ You will need to install the following software BEFORE proceeding with the Micro
   
          sudo /etc/init.d/mysql restart
 
+##Install Perl dependencies#
+
+* MicrobeDB has several Perl dependicies that must be installed for MicrobeDB to function properly.
+
+* Most modules can be installed easily with CPAN (DBI, DBD::mysql, Parallel::ForkManager, Log::Log4perl, Sys::CPU)
+    
+	     sudo cpan Parallel::ForkManager Log::Log4perl Sys::CPU DBI DBD::mysql
+	
+    * MAC OS NOTE: We have found that DBD::mysql often does not install properly. The following command seems like the best current fix:
+
+             sudo ln -s /usr/local/mysql/lib/libmysqlclient.18.dylib /usr/lib/libmysqlclient.18.dylib
+	
+* BioPerl can be installed with CPAN, but we have found that installation is faster by following the directions [here](http://www.bioperl.org/wiki/Installing_Bioperl_for_Unix#INSTALLING_BIOPERL_THE_EASY_WAY_USING_Build.PL).
+
+##Obtain MicrobeDB Software##
+
+* If you have 'git' installed on your system you can simply type the command (this allows easier updating):
+         
+         git clone https://github.com/mlangill/MicrobeDB.git
+
+OR
+
+* Simply download the code by clicking on the "ZIP" at the top left of the webpage (http://github.com/mlangill/MicrobeDB). Extract the contents and rename the top directory from "mlangill-MicrobeDB-NNNNN" to "MicrobeDB".
+
+* Place the MicrobeDB directory somewhere permanent (possibly where you have other PERL modules installed).
+
 ##Setup MicrobeDB database##
-Note: Depending on how you have MySQL installed, you may not need to provide a password for the "root" account. If so just remove the "-p" from the following statements.  
+Note: Depending on how you have MySQL installed, you may not need to provide a password for the "root" account. If no password is needed then just remove the "-p" from the following statements.  
 
 1. Create a user to access the database (Note: we use the username 'microbedb', but this can be any username).
 
@@ -92,9 +118,9 @@ Note: Depending on how you have MySQL installed, you may not need to provide a p
 
         mysql -u root -p -e "CREATE DATABASE microbedb"
 
-3. Load the microbedb table structures
+3. Load the microbedb table structures located at "MicrobeDB/information/INSTALL/microbedb_schema.sql"
 
-        mysql -u root -p microbedb < microbedb_schema.sql
+        mysql -u root -p microbedb < MicrobeDB/information/INSTALL/microbedb_schema.sql
 
 4. Create or confirm your MySQL login config file ~/.my.cnf
 
@@ -112,24 +138,18 @@ Note: Depending on how you have MySQL installed, you may not need to provide a p
 
         chmod 600 $HOME/.my.cnf
 
-6. Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as other perl modules or by adding the path to MicrobeDB to your $PERL5LIB environment variable
+6. Add MicrobeDB to your perl PATH. You can do this by putting the MicrobeDB folder in the same location as your other Perl modules or by adding the path of MicrobeDB to your $PERL5LIB environment variable:
+        
+        #For Bash shell 
+        echo 'export PERL5LIB=/your_path/containing_MicrobeDB/:$PERL5LIB' | cat >> ~/.bashrc
+
+        OR
+
+        #For tsch shell
+        echo 'setenv PERL5LIB /your_path/containing_MicrobeDB/:$PERL5LIB' | cat >> ~/.tschrc
 
 That is it! MicrobeDB is now installed on your computer.
 
-##Running MicrobeDB for the first time##
-
-* To use MicrobeDB you will have to download and load a new version of genome files. 
-* To do this run the following command (this will take a while to run):
-
-        ./scripts/download_load_and_delete_old_version.pl -d /your_absolute_path/shared_genomes_directory
-
-* Note: If there are problems at any stage in the update you can run parts of the pipeline manually (see scripts directory).
-
-        1. download_version.pl
-        2. unpack_version.pl
-        3. load_version.pl
-
-* Use -h option to get help for any of the scripts.
 
 ### Loading non-NCBI genomes (optional) ###
 * Each of your personal genomes should have it's own directory named according to the name of the species. 

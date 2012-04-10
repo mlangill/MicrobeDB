@@ -1,10 +1,19 @@
 MicrobeDB ChangeLog
 =
 
-* Users can choose to download only a subset of all genomes from NCBI (see -s option in download_version.pl)
+* Documentation greatly improved
 
-* Support for incomplete/draft genomes from NCBI (see -i and -o options in download_version.pl)
+* Merged MAC installation in with general INSTALL documentation.
 
+* Added two additional example scripts for using the MicrobeDB API (get_genome_sizes_of_aquatic_genomes.pl & search_for_pathogen_recA_genes.pl)
+
+* Add ability to directly retrieve genomeproject and replicon objects from a gene object when using the MicrobeDB API
+
+* Users can choose to download only a subset of all genomes from NCBI using a search string at the genera and species level. (see -s option in download_version.pl). Works for both complete and incomplete genomes. 
+
+* Support for incomplete/draft genomes from NCBI (see -i and -o options in download_version.pl), including downloading the incomplete genome metadata table. Also, unpack_version.pl has been adapted to properly unpack incomplete genomes (these are .tgz files WITHIN genome directories)
+
+###v0.2###
 * MySQL database name can be set by the user using the environment variable 'MicrobeDB'
 
 * Added a write_fasta() routine to Replicon.pm; where you can write a fasta file and use a formatting string to set the sequence header format
@@ -39,7 +48,7 @@ MicrobeDB ChangeLog
 
 * Scripts in the 'scripts/' directory have been updated to use proper options. Also, scripts have been added to allow manipulation at the 'genomeproject' level and not just for entire versions (e.g. load_genome.pl, delete_genome.pl, and reload_genome.pl). This makes adding custom genomes easier as well as fixing 'problematic' genomes from NCBI without having to re-load entire versions.
 
-##v0.1
+###v0.1###
 
 * Matthew started using logging (Log::Log4perl now required) and I embraced this by adding logging in more places. Also, logging is output to screen at the 'info' level and above, while logging for all categories ('debug' and up) is output to a log file.
 
