@@ -121,6 +121,22 @@ sub field_names{
 	return;
 }
 
+#returns the genomeproject associated with this gene
+sub genomeproject{
+    my ($self) =@_;
+    my $so = new MicrobeDB::Search();
+    my ($genomeproject) = $so->object_search( new MicrobeDB::GenomeProject(gpv_id => $self->gpv_id()));
+    return $genomeproject;
+}
+
+#returns the replicon associated with this gene
+sub replicon{
+    my ($self) =@_;
+    my $so = new MicrobeDB::Search();
+    my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
+    return $replicon;
+}
+
 sub table_names {    
 	my ( $self, $field_name ) = @_;
 
