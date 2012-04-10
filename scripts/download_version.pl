@@ -455,7 +455,7 @@ Displays the entire help documentation.
 
 =head1 DESCRIPTION
 
-B<download_version.pl> This script downloads bacteria and archaea genomes from the NCBI FTP site. Default options will download ALL completed RefSeq genomes using the Aspera downloader. Options are available to also (or only) download incomplete/draft genomes. In addition, a subset of genomes can be downloaded using the --search option, which is useful for testing or for those interested in a particular group of organisms (e.g all "Pseudomonas"). Download time will vary depending on your download speed and the mood of NCBI's FTP server, but expect at least a few hours. Depending on the options used some files are downloaded in compressed format (tar.gz) and will require the use of B<unpack_version.pl> to expand all files into proper flat file structure where each genome has its own directory.
+B<download_version.pl> This script downloads bacteria and archaea genomes from the NCBI FTP site. Default options will download ALL completed RefSeq genomes using the Aspera downloader. Options are available to also (or only) download incomplete/draft genomes. In addition, a subset of genomes can be downloaded using the --search option, which is useful for testing or for those interested in a particular group of organisms (e.g all "Pseudomonas"). Download time will vary depending on your download speed, the mood of NCBI's FTP server, the selection of different file formats, etc., but expect anywhere from 10 minutes to a few hours. Depending on the options used some files are downloaded in compressed format (tar.gz) and will require the use of B<unpack_version.pl> to expand all files into proper flat file structure where each genome has its own directory.
 
 =head1 AUTHOR
 

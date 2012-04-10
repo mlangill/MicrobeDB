@@ -34,6 +34,10 @@ use Bio::SeqIO;
 my $prefix = 'Bacteria';
 
 my ($download_parent_dir,$logger_cfg,$help,$parallel,$special_download_options);
+
+#set defaults
+$special_download_options='';
+
 my $res = GetOptions("directory=s" => \$download_parent_dir,
 		     "parallel:i"=>\$parallel,
 		     "logger=s" => \$logger_cfg,
@@ -87,7 +91,7 @@ $logger->info("Making download directory: $download_dir");
 `mkdir $download_dir/log` unless -d "$download_dir/log";
 
 #Download all genomes from NCBI
-$logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; ~1-4hours)\n");
+$logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; (10 minutes to a few hours))\n");
 my $cmd = "$path/download_version.pl -d $download_dir $special_download_options";
 $cmd .= " -l $logger_cfg" if(-f $logger_cfg);
 system($cmd);
