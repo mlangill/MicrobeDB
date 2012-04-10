@@ -19,8 +19,6 @@
 
 #Author Morgan Langille, http://morganlangille.com
 
-$|++;
-
 use strict;
 use warnings;
 use Getopt::Long;
@@ -90,7 +88,7 @@ $logger->info("Making download directory: $download_dir");
 
 #Download all genomes from NCBI
 $logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; ~1-4hours)\n");
-my $cmd = "$path/download_version.pl -d $download_dir $downloader_options";
+my $cmd = "$path/download_version.pl -d $download_dir $special_download_options";
 $cmd .= " -l $logger_cfg" if(-f $logger_cfg);
 system($cmd);
 $logger->logdie("Error with downloading the new version: $!") if $?;
