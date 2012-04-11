@@ -6,9 +6,11 @@ ABOUT
 * MicrobeDB provides centralized local storage and access to completed archaeal and bacterial genomes.
 * MicrobeDB contains three main features. 
 
-    1. All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
-    2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
-    3. A Perl API is provided to interface with the MySQL database and allow easy use of the data.
+1. All "flat" files associated with the each genome are downloaded from NCBI (http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi) and stored locally in a directory of your choosing.
+    
+2. For each genome, information about the organism, chromosomes within the organism, and genes within each chromosome are parsed and stored in a MySQL database including sequences and annotations.
+
+3. A Perl API is provided to interface with the MySQL database and allow easy use of the data.
 
 * By default all RefSeq genomes are downloaded
     * Incomplete/draft genomes can also be obtained.
@@ -55,9 +57,9 @@ Downloading a new "version" of genomes with MicrobeDB
 
 * You can run the 3 scripts manually, which gives you more control and maybe useful in case there are any errors in the update. 
 
-        1. download_version.pl
-        2. unpack_version.pl
-        3. load_version.pl
+1. download_version.pl
+2. unpack_version.pl
+3. load_version.pl
 
 * You can use the -h option (e.g. ./download_version.pl -h) or 'perldoc download_version.pl' to get help for any of the scripts.
 * For example if you want to download incomplete genomes as well you can specify this with the -i option.
@@ -131,56 +133,60 @@ Overview of MicrobeDB
 Using MicrobeDB
 ==============
 * Once MicrobeDB is installed and you have downloaded your first version of genomes you are ready to start using MicrobeDB. 
-
-Searching with MicrobeDB
-------------------------
 * Since MicrobeDB parses genomes in a MySQL database you can search and retrieve information in various ways. 
 
+Searching with MySQL
+--------------------
 * If you are familiar with MySQL syntax and are comfortable with a commandline then you can use the traditional MySQL client:
     
-	1. Connecting directly to MySQL database via command line client
+1. Connecting directly to MySQL database via command line client
 
-            mysql -u microbedb -p
+    mysql -u microbedb -p
 
-    2. Then use MySQL syntax to do your queries. For example:
+2. Then use MySQL syntax to do your queries. For example:
 	
-		    #get a list of all genomes that are described as pathogens
-			select * from genomeproject where patho_status = 'pathogen'
+    #get a list of all genomes that are described as pathogens
+	select * from genomeproject where patho_status = 'pathogen'
 		
-		    #get all genes with name "dnaA"
-			select * from gene where gene_name='dnaA'
+	#get all genes with name "dnaA"
+	select * from gene where gene_name='dnaA'
 		
+Installing 3rd party MySQL programs
+-----------------------------------
 * If you are not as familiar with MySQL syntax and would like a more pretty interface, then you can use other software to query MicrobeDB.
 		
-	1. Using a client desktop application such as [MySQL Workbench](http://www.mysql.com/products/workbench/)
-	    * This is a simple to install and free software package provides many features which make querying MySQL databases easier.
-	
-	2. Using a web based application such as [phpMyAdmin](http://www.phpmyadmin.net/home_page/index.php)
-	    * phpMyAdmin is more difficult to install, but once it is it allows a web-based method to search and interact with your database.
 
+1. Using a client desktop application such as [MySQL Workbench](http://www.mysql.com/products/workbench/)
+	* This is a simple to install and free software package provides many features which make querying MySQL databases easier.
+	
+2. Using a web based application such as [phpMyAdmin](http://www.phpmyadmin.net/home_page/index.php)
+    * phpMyAdmin is more difficult to install, but once it is it allows a web-based method to search and interact with your database.
+
+
+Programming with the MicrobeDB API
+----------------------------------
 * If you know how to program in Perl you can use the MicrobeDB Perl API which allows you to retrieve data without constructing MySQL queries.
-
-    * Example of a simple perl script using the MicrobeDB API that searches for all 'recA' genes and prints them in 'Fasta' format:
+* Example of a simple perl script using the MicrobeDB API that searches for all 'recA' genes and prints them in 'Fasta' format:
 	
-	        #Import the MicrobeDB API
-			use lib '/your/path/to/MicrobeDB';
-			use MicrobeDB::Search;
-			
-			#intialize the search object
-			$search_obj= MicrobeDB::Search();
-			
-			#create the object that has properties that must match in the database
-			$gene_obj= MicrobeDB::Gene(gene_name => 'recA');
-			
-			#do the actual search
-			@genes = $search_obj->object_search($gene_obj);
-			
-			#loop through each gene we found and print in FASTA format
-			foreach my $gene (@genes){
-		        print'>',$gene->gid(),"\n",$gene->gene_seq(),"\n";
-			}	
+	#Import the MicrobeDB API
+	use lib '/your/path/to/MicrobeDB';
+	use MicrobeDB::Search;
+	
+	#intialize the search object
+	$search_obj= MicrobeDB::Search();
+	
+	#create the object that has properties that must match in the database
+	$gene_obj= MicrobeDB::Gene(gene_name => 'recA');
+	
+	#do the actual search
+	@genes = $search_obj->object_search($gene_obj);
+	
+	#loop through each gene we found and print in FASTA format
+	foreach my $gene (@genes){
+	print'>',$gene->gid(),"\n",$gene->gene_seq(),"\n";
+	}	
 
-    * See more examples using the MicrobeDB API in [information/example_scripts] (https://github.com/mlangill/MicrobeDB/tree/master/information/example_scripts/).
+* See more examples using the MicrobeDB API in [information/example_scripts] (https://github.com/mlangill/MicrobeDB/tree/master/information/example_scripts/).
 
 
 Extending MicrobeDB
