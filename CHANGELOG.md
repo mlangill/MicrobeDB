@@ -9,6 +9,8 @@ MicrobeDB ChangeLog
 
 * Add ability to directly retrieve genomeproject and replicon objects from a gene object when using the MicrobeDB API
 
+* Several MySQL columns have been indexed to improve query time on these fields (e.g. gene_name, locus_tag, rep_accnum, etc.). 
+
 * Users can choose to download only a subset of all genomes from NCBI using a search string at the genera and species level. (see -s option in download_version.pl). Works for both complete and incomplete genomes. 
 
 * Support for incomplete/draft genomes from NCBI (see -i and -o options in download_version.pl), including downloading the incomplete genome metadata table. Also, unpack_version.pl has been adapted to properly unpack incomplete genomes (these are .tgz files WITHIN genome directories)
