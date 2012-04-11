@@ -141,15 +141,15 @@ Searching with MySQL
     
 1. Connecting directly to MySQL database via command line client
 
-    mysql -u microbedb -p
+        mysql -u microbedb -p
 
 2. Then use MySQL syntax to do your queries. For example:
 	
-    #get a list of all genomes that are described as pathogens
-	select * from genomeproject where patho_status = 'pathogen'
+        #get a list of all genomes that are described as pathogens
+		select * from genomeproject where patho_status = 'pathogen'
 		
-	#get all genes with name "dnaA"
-	select * from gene where gene_name='dnaA'
+		#get all genes with name "dnaA"
+		select * from gene where gene_name='dnaA'
 		
 Installing 3rd party MySQL programs
 -----------------------------------
@@ -168,23 +168,23 @@ Programming with the MicrobeDB API
 * If you know how to program in Perl you can use the MicrobeDB Perl API which allows you to retrieve data without constructing MySQL queries.
 * Example of a simple perl script using the MicrobeDB API that searches for all 'recA' genes and prints them in 'Fasta' format:
 	
-	#Import the MicrobeDB API
-	use lib '/your/path/to/MicrobeDB';
-	use MicrobeDB::Search;
+	    #Import the MicrobeDB API
+		use lib '/your/path/to/MicrobeDB';
+		use MicrobeDB::Search;
 	
-	#intialize the search object
-	$search_obj= MicrobeDB::Search();
+	    #intialize the search object
+		$search_obj= MicrobeDB::Search();
 	
-	#create the object that has properties that must match in the database
-	$gene_obj= MicrobeDB::Gene(gene_name => 'recA');
-	
-	#do the actual search
-	@genes = $search_obj->object_search($gene_obj);
-	
-	#loop through each gene we found and print in FASTA format
-	foreach my $gene (@genes){
-	print'>',$gene->gid(),"\n",$gene->gene_seq(),"\n";
-	}	
+	    #create the object that has properties that must match in the database
+		$gene_obj= MicrobeDB::Gene(gene_name => 'recA');
+		
+		#do the actual search
+		@genes = $search_obj->object_search($gene_obj);
+		
+		#loop through each gene we found and print in FASTA format
+		foreach my $gene (@genes){
+		print'>',$gene->gid(),"\n",$gene->gene_seq(),"\n";
+		}	
 
 * See more examples using the MicrobeDB API in [information/example_scripts] (https://github.com/mlangill/MicrobeDB/tree/master/information/example_scripts/).
 
@@ -199,6 +199,7 @@ Extending MicrobeDB
 
 * For example, imagine you wanted to store SNP data. You want to store the position of the SNP, an in-house experiment id, and the base at that position. Then you would want to create a new table and use the rep_accnum field to join the MicrobeDB replicon table to your in-house table. Your columns would be "your_primary_snp_id", "rep_accnum", "your_experiment_id", "snp_position", "snp_base".  
 
-##Questions/Comments##
+Questions/Comments
+==================
 * Contact: Morgan Langille
 * Email: morgan.g.i.langille@gmail.com

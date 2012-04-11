@@ -30,11 +30,11 @@ You will need to install the following software BEFORE proceeding with the Micro
     
         sudo pico /etc/paths
 
-    * Then add the following line to the end of the file:
+Then add the following line to the end of the file:
 
         /usr/local/mysql/bin
 
-    * Save the file.
+Save the file.
 
 ####MAC OSX: Change the MySQL system setting 'max_allowed_packet'####
 
@@ -46,13 +46,12 @@ You will need to install the following software BEFORE proceeding with the Micro
 
         sudo pico /etc/my.cnf
 
-    * Find and change the following line in the config file:
-
-        * From:
+* Find and change the following line in the config file:
+    * From:
 
                 max_allowed_packet = 1M
 
-        * To:
+* To:
 
                 max_allowed_packet = 64M
 
