@@ -107,7 +107,7 @@ Note: Depending on how you have MySQL installed, you may not need to provide a p
 
 1. Create a user to access the database (Note: we use the username 'microbedb', but this can be any username).
 
-        mysql -u root -p -e "CREATE USER 'microbedb'@'localhost' IDENTIFITED BY 'some_password'"
+        mysql -u root -p -e "CREATE USER 'microbedb'@'localhost' IDENTIFIED BY 'some_password'"
 
 2. Give the user access to the microbedb database
 
