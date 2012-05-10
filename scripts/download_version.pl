@@ -306,11 +306,13 @@ sub get_ftp_file_list{
 sub get_genomeprojfiles {
     my ($localdir) = @_;
 
-    #Note: Could also get these from ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_0.txt
+    #Note: Currently grabbing data from ftp://ftp.ncbi.nih.gov/genomes/genomeprj/
+    #Note2: We used to grab it from http://www.ncbi.nih.gov/genomes/lproks.cgi but NCBI shut this page down. (http://www.ncbi.nlm.nih.gov/About/news/17Nov2011.html)
     #Note2: Supposedly these are going to be phased out and replaced by: ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/prokaryotes.txt
     #However, this new file is very limited (does not contain any organism information), and is using the new BioProject Accession (PRJNAXXXX) which is not being well supported by NCBI yet (i.e older genome id is still in directory name and all genbank records).
-
-    my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
+ 
+    #my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
+    my $ncbi_orginfo_url=' ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_0.txt';
     my $ncbi_orginfo_file=$localdir."NCBI_orginfo.txt";
 
     $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_orginfo_url");
@@ -320,7 +322,9 @@ sub get_genomeprojfiles {
     print $ORGINFO $ncbi_orginfo_content;
     close $ORGINFO;
 
-    my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
+    #my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
+    my $ncbi_compgen_url='ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_1.txt';
+
     my $ncbi_compgen_file=$localdir."NCBI_completegenomes.txt";
 
     $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url");
@@ -330,7 +334,8 @@ sub get_genomeprojfiles {
     print $COMPGEN $ncbi_compgen_content;
     
 
-    my $ncbi_incompgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=2&dump=selected';
+    #my $ncbi_incompgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=2&dump=selected';
+    my $ncbi_incompgen_url='ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_2.txt';
 
     $logger->info("Downloading incomplete genome information from NCBI at: $ncbi_incompgen_url");
 
