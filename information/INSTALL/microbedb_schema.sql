@@ -44,7 +44,10 @@ CREATE TABLE `gene` (
   KEY `version_id` (`version_id`),
   KEY `gpv_id` (`gpv_id`),
   KEY `rpv_id` (`rpv_id`),
-  KEY `protein_accnum` (`version_id`,`protein_accnum`)
+  KEY `protein_accnum` (`version_id`,`protein_accnum`),
+  KEY `gene_name` (`gene_name`(100)),
+  KEY `locus_tag` (`locus_tag`(50)),
+  KEY `gene_product` (`gene_product`(100))
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -129,7 +132,9 @@ CREATE TABLE `replicon` (
   KEY `version` (`version_id`),
   KEY `gpv_id` (`gpv_id`),
   KEY `rep_accnum` (`rep_accnum`,`version_id`) USING BTREE,
-  KEY `rep_type` (`rep_type`,`version_id`) USING BTREE
+  KEY `rep_type` (`rep_type`,`version_id`) USING BTREE,
+  KEY `definition` (`definition`(100)),
+  KEY `rep_ginum` (`rep_ginum`(100))
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -180,5 +185,5 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-04-05 21:49:58
-INSERT INTO `microbedb_meta` VALUES (1,'schema_version','3');
+-- Dump completed on 2012-04-04  7:18:22
+INSERT INTO `microbedb_meta` VALUES (1,'schema_version','4');

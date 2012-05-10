@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
 
@@ -32,6 +32,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use Cwd qw(abs_path getcwd);
+use Pod::Usage;
 
 my $path;
 BEGIN{
@@ -40,34 +41,61 @@ BEGIN{
 chdir($path);
 };
 
-my ($dir,$logger_cfg,$help);
+my ($dir,$help);
 my $res = GetOptions("directory=s" => \$dir,
-		     "logger=s" => \$logger_cfg,
 		     "help"=>\$help,
-    );
+    )or pod2usage(2);
 
-my $usage = "Usage: 
-$0 [-l <logger config file>] [-h] -d directory \n";
+pod2usage(-verbose=>2) if $help;
 
-my $long_usage = $usage.
-    "-d or --directory <directory> : Mandatory. A directory of a genome already loaded in MicrobeDB.
--l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
-die $long_usage if $help;
+pod2usage($0.': You must specify a genome directory.') unless defined $dir;
 
-die $usage unless $dir;
-
-
-# Set the logger config to a default if none is given
-$logger_cfg = "logger.conf" unless($logger_cfg);
-
-my $delete_cmd=$path.'/delete_genome.pl'." -l $logger_cfg -d $dir";
+my $delete_cmd=$path.'/delete_genome.pl -d '.$dir;
 #delete old one
 system($delete_cmd);
 
 #add new one
-system($path.'/load_genome.pl'." -l $logger_cfg -d $dir");
+system($path.'/load_genome.pl -d '.$dir);
+
+__END__
+
+=head1 Name
+
+reload_genome.pl - Reloads a single genome into MicrobeDB
+
+=head1 USAGE
+
+reload_genome.pl [-h] -d directory ;
+
+E.g.
+
+reload_genome.pl -d /share/genomes/Bacteria_2011_01_01/Pseudomonas_aeruginosa_LESB58/
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-d, --directory <dir>>
+
+Specify a directory containing a single genome (one or more genbank files).
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<reload_genome.pl> This removes a genome from MicrobeDB (using delete_genome.pl) and the loads it back into MicrobeDB (using load_genome.pl).
+Convenient when you have a genome that is giving erros while loading.
+
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
 
 
 	

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use warnings;
 use strict;
@@ -7,7 +7,7 @@ use File::Copy;
 use SQL::Translator;
 use Cwd;
 use File::Basename;
-use lib "../../";
+use lib "../../../";
 use MicrobeDB::Search;
 use autodie;
 

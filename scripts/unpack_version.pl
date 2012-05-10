@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
 
@@ -18,34 +18,26 @@
 #along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
 
 #Unpacks (tar/gzip) genome files from ftp download
-#This is usually run after download_version.pl (by the download_load_and_delete_old_version.pl)
+#This is usually run after download_version.pl either manually or by the download_load_and_delete_old_version.pl.
 
 use strict;
 use warnings;
 use Parallel::ForkManager;
 use Getopt::Long;
+use Pod::Usage;
 use Log::Log4perl;
-use Sys::CPU;
+use File::Basename;
   
 my ($download_dir,$logger_cfg,$help,$parallel);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "parallel:i"=>\$parallel,
 		     "logger=s" => \$logger_cfg,
 		     "help"=>\$help,
-    );
+    )or pod2usage(2);
 
-my $usage = "Usage: $0 [-p <num_cpu>][-l <logger.conf>] [-h] -d directory \n";
-my $long_usage = $usage.
-    "Options:
--d or --directory <directory> : Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
--p or --parallel: Using this option without a value will use all cpus, while giving it a value will limit to that many cpus. Without option only one cpu is used. 
--l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
-die $long_usage if $help;
+pod2usage(-verbose=>2) if $help;
 
-die $usage unless $download_dir;
-
+pod2usage($0.': You must specify your download directory.') unless defined $download_dir;
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
@@ -55,37 +47,108 @@ my $logger = Log::Log4perl->get_logger;
 # Clean up the download path
 $download_dir .= '/' unless $download_dir =~ /\/$/;
 
-
 my $cpu_count=0;
 
 #if the option is set
 if(defined($parallel)){
     #option is set but with no value then use the max number of proccessors
     if($parallel ==0){
+	#load this module dynamically
+	eval("use Sys::CPU;");
 	$cpu_count= Sys::CPU::cpu_count();
     }else{
 	$cpu_count=$parallel;
     }
 }
 
-$logger->info("Parallel proccessing the unpacking step with $cpu_count proccesses.") if defined($parallel);
-my $pm = new Parallel::ForkManager($cpu_count);
-
 
 chdir($download_dir);
 my @compressed_files = glob($download_dir .'all.*.tar.gz');
+
+#Also decompress individual .tgz files within genome directories (format of incomplete/draft genomes)
+push(@compressed_files,glob($download_dir.'*/*.tgz'));
+
+$logger->logdie("Didn't find any files to uncompress. Are you sure your directory: \"$download_dir\" contains compressed files?") unless @compressed_files;
+
+
+$logger->info("Parallel proccessing the unpacking step with $cpu_count proccesses.") if defined($parallel);
+my $pm = new Parallel::ForkManager($cpu_count);
+
 for my $tarball (@compressed_files){
     my $pid = $pm->start and next; 
     $logger->info("Unpacking $tarball");
-    my $status= system("tar xzf $tarball");
-    if($status){
-	$logger->fatal("Unpacking of $tarball failed!");
-	die;
-    }else{
-	$logger->info("Done unpacking and now deleting $tarball");
-	unlink($tarball);
+    
+    my $dir=dirname($tarball);
+
+    if($dir){
+	system("tar xvf $tarball -C $dir");
+    }else{	
+	system("tar xzf $tarball");
     }
+
+    $logger->logdie("Unpacking of $tarball failed!") if $?;
+    
+    $logger->info("Done unpacking and now deleting $tarball");
+    unlink($tarball);
+    
      $pm->finish;
 }
 $pm->wait_all_children;
 $logger->info("All done unpacking.");
+
+__END__
+
+=head1 Name
+
+unpack_version.pl - Uncompresses all RefSeq bacteria and archaea genomes previously downloaded from NCBI.
+
+=head1 USAGE
+
+unpack_version.pl [-p <num_cpu>][-l <logger.conf>] [-h] -d directory ;
+
+E.g.
+
+#Uncompress all compressed files in this directory using a single processor
+
+unpack_version.pl -d /share/genomes/Bacteria_2011_01_01/
+
+#Use all the power of my quad-core computer
+
+unpack_version.pl -p -d /share/genomes/Bacteria_2011_01_01/
+
+#Use only 2 of my 4 possible cores
+
+unpack_version.pl -p 2 -d /share/genomes/Bacteria_2011_01_01/
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-d, --directory <dir>>
+
+The download directory containing compressed genome files downloaded from NCBI via download_version.pl.
+
+=item B<-p, --parallel [<# of proc>]>
+
+Using this option without a value will use all CPUs on machine, while giving it a value will limit to that many CPUs. Without option only one CPU is used. 
+
+=item B<-l, --logger <logger config file>>
+
+Specify an alternative logger.conf file.
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<unpack_version.pl> This script uncompresses gzipped tarballs that were downloaded from NCBI's FTP website. This step can be sped up by using the --parallel flag. 
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
+

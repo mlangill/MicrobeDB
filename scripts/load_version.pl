@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
 
@@ -18,8 +18,6 @@
 #along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#This script loads custom genomes (ones not downloaded from NCBI, but instead provided by the user)
-
 #Author Morgan Langille
 #Last updated: see github
 
@@ -33,9 +31,10 @@ use File::stat;
 use Getopt::Long;
 use LWP::Simple;
 use Log::Log4perl;
+use Pod::Usage;
+
 use Cwd qw(abs_path getcwd);
 use Parallel::ForkManager;
-use Sys::CPU;
 
 BEGIN{
 # Find absolute path of script
@@ -45,7 +44,6 @@ chdir($path);
 
 #relative link to the api
 use lib "../../";
-use lib "./";
 use MicrobeDB::FullUpdate;
 use MicrobeDB::Search;
 use MicrobeDB::Parse;
@@ -59,21 +57,11 @@ my $res = GetOptions("directory=s" => \$download_dir,
 		     "logger=s" => \$logger_cfg,
 		     "custom"=>\$custom,
 		     "help"=>\$help,
-    );
+    )or pod2usage(2);
 
-my $usage = "Usage: $0 [-p <num_cpu>][-l <logger.conf>] [-c] [-h] -d directory \n";
-my $long_usage = $usage.
-    "Options:
--d or --directory <directory> : Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
--c or --custom : signifies that this directory contains non-downloaded NCBI genomes. Genomes are assigned version_id 0.
--p or --parallel: Using this option without a value will use all cpus, while giving it a value will limit to that many cpus. Without option only one cpu is used. 
--l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
-die $long_usage if $help;
+pod2usage(-verbose=>2) if $help;
 
-die "Either download_dir wasn't given or, if given, does not exist.\n$usage" unless $download_dir && -d $download_dir;
-
+pod2usage($0.': You must specify a directory.') unless defined $download_dir && -d $download_dir;
 
 # Set the logger config to a default if none is given
 $logger_cfg = "logger.conf" unless($logger_cfg);
@@ -83,13 +71,14 @@ my $logger = Log::Log4perl->get_logger;
 # Clean up the download path
 $download_dir .= '/' unless $download_dir =~ /\/$/;
 
-
 my $cpu_count=0;
 
 #if the option is set
 if(defined($parallel)){
     #option is set but with no value then use the max number of proccessors
     if($parallel ==0){
+	#load this module dynamically
+	eval("use Sys::CPU;");
 	$cpu_count=Sys::CPU::cpu_count();
     }else{
 	$cpu_count=$parallel;
@@ -99,8 +88,7 @@ if(defined($parallel)){
 $logger->info("Parallel proccessing the loading step with $cpu_count proccesses.") if defined($parallel);
 my $pm = new Parallel::ForkManager($cpu_count);
 
-
-#Load the genome into microbedb as a custom genome (version_id==0)
+#Load the genome into microbedb
 my $new_version = load_microbedb($download_dir);
 
 sub load_microbedb {
@@ -133,7 +121,6 @@ sub load_microbedb {
 	    
 	    #if there was a parsing problem, give a warning and skip to the next genome project
 	    if ($@) {
-		warn "Couldn't add the following to microbedb: $curr_dir ! Reason: $@";
 		$logger->error("Couldn't add the following to microbedb: $curr_dir ! Reason: $@");
 	      
 	    }
@@ -148,15 +135,17 @@ sub load_microbedb {
 
 
 sub get_sub_dir {
-	my $head_dir = shift;
+    my $head_dir = shift;
 
-	opendir my($dh), $head_dir;
+    $head_dir .= '/' unless ( $head_dir =~ /\/$/ );
 
-	my @dirs = grep { -d $_ } map { "$head_dir$_/" } readdir $dh;
+    opendir my($dh), $head_dir || die "Error opening $head_dir: $!";
 
-	closedir $dh;
+    my @dirs = grep { ! /^\.\.?$/ } grep { -d $_ } map { "$head_dir$_/" } readdir $dh;
 
-	return remove_dir(@dirs);
+    closedir $dh;
+
+    return remove_dir(@dirs);
 }
 
 #removes any directories that does not contain a genome project (or causes other problems)
@@ -167,9 +156,66 @@ sub remove_dir {
 	#Filter out some directories we don't want
 	foreach (@genome_dir) {
 		next if ( $_ =~ /CLUSTERS/ );
+		next if $_ =~ /\.\/$/;
+		next if $_ =~ /\.\.\/$/;
+		next if $_ =~ /log$/;
 
 		push( @temp, $_ );
 	}
 	return @temp;
 }
+
+
+__END__
+
+=head1 Name
+
+load_version.pl - Loads a version of genomes into MicrobeDB
+
+=head1 USAGE
+
+load_version.pl [-c -p [<# proc>] -l <log conf> -h] -d directory 
+
+E.g.
+
+load_version.pl -d /share/genomes/Bacteria_2011_01_01/
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-d, --directory <dir>>
+
+Mandatory. A directory containing directories of genomes to be loaded into MicrobeDB. 
+
+=item B<-c, --custom>
+
+Signifies that this directory contains unpublished genomes not from NCBI. Genomes are assigned version_id 0.
+
+=item B<-p, --parallel [<# of proc>]>
+
+Using this option without a value will use all CPUs on machine, while giving it a value will limit to that many CPUs. Without option only one CPU is used. 
+
+=item B<-l, --logger <logger config file>>
+
+Specify an alternative logger.conf file.
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<load_version.pl> This script loads all genomes from a recent download into the MicrobeDB database. 
+The given directory should contain several sub-directories with each containing a genome (one or more genbank files). 
+This script is normally run after "unpack_version.pl".
+This script can also be used to add personal/unpublished genomes. It is recommended to use the --custom option when loading non-NCBI genomes so that they are stored somewhat seperate from other versions and always with version_id=0. 
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
 

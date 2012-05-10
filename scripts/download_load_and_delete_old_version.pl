@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
 
@@ -17,16 +17,6 @@
 #You should have received a copy of the GNU General Public License
 #along with MicrobeDB.  If not, see <http://www.gnu.org/licenses/>.
 
-
-#This is the main script for installing/updating MicrobeDB
-#It acts as a wrapper to run 3 other scripts automatically (these can be run manually if you choose)
-#1) All genomes are downloaded from NCBI using Aspera (default) or FTP (download_version.pl)
-#2) Downloaded genomes are then extracted (unpack_version.pl)
-#3) All genomes are parsed and loaded into microbedb (load_version.pl)
-#4) Old versions in MicrobeDB are removed (note: custom version, saved versions, and last 2 most recent versions are never deleted)
-
-#Note: This script can be set up in a cron job to run weekly/monthly/etc. Previous versions are left untouched and all data is re-downloaded, re-unpacked, and re-loaded into the database. Use "delete_version.pl" to remove these old versions.
-
 #Author Morgan Langille, http://morganlangille.com
 
 $|++;
@@ -36,46 +26,31 @@ use warnings;
 use Getopt::Long;
 use Log::Log4perl;
 use Cwd qw(abs_path getcwd);
+use Pod::Usage;
 use Time::localtime;
-use Sys::CPU;
+
+#Call some modules we don't need here but will need in other scripts being called.
+use Parallel::ForkManager;
+use Bio::SeqIO;
 
 my $prefix = 'Bacteria';
 
-my ($download_parent_dir,$logger_cfg,$help,$parallel);;
+my ($download_parent_dir,$logger_cfg,$help,$parallel,$special_download_options);
+
+#set defaults
+$special_download_options='';
+
 my $res = GetOptions("directory=s" => \$download_parent_dir,
 		     "parallel:i"=>\$parallel,
 		     "logger=s" => \$logger_cfg,
+		     "special_download_options=s"=>\$special_download_options,
 		     "help"=>\$help,
-    );
+    )or pod2usage(2);
 
-my $usage = "Usage: $0 [-p <num_cpu>][-l <logger.conf>] [-h] -d directory \n";
-my $long_usage = $usage.
-    "Options:
--d or --directory <directory> : Mandatory. A directory where genomes will be downloaded and stored (e.g. ~/ncbi_genomes) 
--p or --parallel: Using this option without a value will use all cpus, while giving it a value will limit to that many cpus. Without option only one cpu is used. 
--l or --logger <logger config file>: alternative logger.conf file
--h or --help : Show more information for usage.
-";
-die $long_usage if $help;
+pod2usage(-verbose=>2) if $help;
 
-die $usage unless $download_parent_dir;
+pod2usage($0.': You must specify your download directory.') unless defined $download_parent_dir;
 
-
-my $cpu_count=0;
-
-#if the option is set
-if(defined($parallel)){
-    #option is set but with no value then use the max number of proccessors
-    if($parallel ==0){
-	$cpu_count=Sys::CPU::cpu_count();
-    }else{
-	$cpu_count=$parallel;
-    }
-}
-
-
-# Clean up the download path
-$download_parent_dir .= '/' unless $download_parent_dir =~ /\/$/;
 
 # Find absolute path of script
 my ($path) = abs_path($0) =~ /^(.+)\//;
@@ -83,18 +58,25 @@ chdir($path);
 
 # Set the logger config to a default if none is given
 $logger_cfg = "$path/logger.conf" unless($logger_cfg);
-# Set some base logging settings if the logger conf doesn't exist
-$logger_cfg = q/
-    log4perl.rootLogger = INFO, Screen
-
-    log4perl.appender.Screen                          = Log::Log4perl::Appender::Screen
-    log4perl.appender.Screen.layout.ConversionPattern = [%p] (%F line %L) %m%n
-/ unless(-f $logger_cfg);
 Log::Log4perl::init($logger_cfg);
 my $logger = Log::Log4perl->get_logger;
 
-$logger->fatal("$download_parent_dir is not a valid directory. Please supply a directory where NCBI flat files can be stored.") unless -d $download_parent_dir;
-die "$download_parent_dir is not a valid directory. Please supply a directory where NCBI flat files can be stored." unless -d $download_parent_dir;
+my $cpu_count=0;
+#if the option is set
+if(defined($parallel)){
+    #option is set but with no value then use the max number of proccessors
+    if($parallel ==0){
+	eval("use Sys::CPU;");
+	$cpu_count=Sys::CPU::cpu_count();
+    }else{
+	$cpu_count=$parallel;
+    }
+}
+
+# Clean up the download path
+$download_parent_dir .= '/' unless $download_parent_dir =~ /\/$/;
+
+$logger->logdie("$download_parent_dir is not a valid directory. Please supply a directory where NCBI flat files can be stored.") unless -d $download_parent_dir;
 
 $logger->debug("Path to script is: $path");
 
@@ -111,18 +93,12 @@ $logger->info("Making download directory: $download_dir");
 `mkdir $download_dir/log` unless -d "$download_dir/log";
 
 #Download all genomes from NCBI
-$logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; ~1-4hours)\n");
-my $cmd = "$path/download_version.pl -d $download_dir";
+$logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; (10 minutes to a few hours))\n");
+my $cmd = "$path/download_version.pl -d $download_dir $special_download_options";
 $cmd .= " -l $logger_cfg" if(-f $logger_cfg);
 system($cmd);
-if($?) {
-    $logger->fatal("Error with downloading the new version: $!");
-    die;
-}
+$logger->logdie("Error with downloading the new version: $!") if $?;
 
-$logger->info("Moving symlink for parent directory");
-unlink "$download_parent_dir/$prefix" if ( -l "$download_parent_dir/$prefix");
-symlink "$download_dir", "$download_parent_dir/$prefix" or $logger->error("Unable to create symlink from $download_dir to $download_parent_dir/$prefix\n");
 
 $logger->info("Finished downloading genomes from NCBI.\n");
 
@@ -134,10 +110,8 @@ if(defined($parallel)){
 }
 
 system($unpack_cmd);
-if($?) {
-    $logger->fatal("Error when unpacking the new version: $!");
-    die;
-}
+$logger->logdie("Error when unpacking the new version: $!") if $?;
+
 $logger->info("Finished unpacking genome files");
 
 #Load all genomes into microbedb as a new version
@@ -147,21 +121,104 @@ my $load_cmd = "$path/load_version.pl -l logger.conf -d $download_dir";
 if(defined($parallel)){
     $load_cmd .=" -p $cpu_count";
 }
-
 system($load_cmd);
-if($?) {
-    $logger->fatal("Error loading the new version: $!");
-    die;
-}
-
+$logger->logdie("Error loading the new version: $!") if $?;
+  
 $logger->info("Finished parsing and loading each genome into NCBI");
 
 #Remove old versions from MicrobeDB
 $logger->info("Old versions in MicrobeDB are being deleted (note: the custom version, saved versions, and last 2 most recent versions are never deleted)");
 system("$path/delete_version.pl -a -l logger.conf");
-if($?) {
-    $logger->fatal("Error cleaning up old versions of MicrobeDB: $!");
-    die;
-}
+$logger->logdie("Error cleaning up old versions of MicrobeDB: $!") if $?;
 
+$logger->info("Moving symlink for parent directory");
+unlink "$download_parent_dir/$prefix" if ( -l "$download_parent_dir/$prefix");
+symlink "$download_dir", "$download_parent_dir/$prefix" or $logger->error("Unable to create symlink from $download_dir to $download_parent_dir/$prefix\n");
+
+#All Done!
 $logger->info("Finished deleting old versions of MicrobeDB");
+
+__END__
+
+=head1 Name
+
+download_load_and_delete_old_version.pl - Does a complete update of MicrobeDB.
+
+=head1 USAGE
+
+download_load_and_delete_old_version.pl [-p <num_cpu>][-l <logger.conf>] [-h] -d directory ;
+
+E.g.
+
+#Do an update and store files in this directory using a single processor
+
+download_load_and_delete_old_version.pl -d /share/genomes/
+
+#Use all the power of my quad-core computer
+
+download_load_and_delete_old_version.pl -p -d /share/genomes/
+
+#Use only 2 of my 4 possible cores
+
+download_load_and_delete_old_version.pl -p 2 -d /share/genomes/
+
+=head1 OPTIONS
+  
+=over 4
+
+=item B<-d, --directory <dir>>
+
+The directory where MicrobeDB should place all flat files (Note: a date stamped sub-directory will be created for each update) (MANDATORY)
+
+=item B<-p, --parallel [<# of proc>]>
+
+Using this option without a value will use all CPUs on machine, while giving it a value will limit to that many CPUs. Without option only one CPU is used. 
+
+=item B<-s, --special_download_options>
+
+This allows options to be passed to the B<download_version.pl> script. Ensure that the options are enclosed in single quotes (e.g. -s '-s Pseudomonas -o').
+
+=item B<-l, --logger <logger config file>>
+
+Specify an alternative logger.conf file.
+
+=item B<-h, --help>
+
+Displays the entire help documentation.
+
+=back
+
+=head1 DESCRIPTION
+
+B<download_load_and_delete_old_version.pl> This is the main script for installing/updating MicrobeDB
+
+It acts as a wrapper to run 3 other scripts automatically (these can be run manually if you choose or if there are errors at a particular stage)
+
+=over
+
+=item 1. 
+
+All genomes are downloaded from NCBI using Aspera (default) or FTP (download_version.pl)
+
+=item 2.
+
+Downloaded genomes are then extracted (unpack_version.pl)
+
+=item 3.
+
+All genomes are parsed and loaded into microbedb (load_version.pl)
+
+=item 4.
+
+Old versions in MicrobeDB are removed (note: custom version, saved versions, and most recent versions are never deleted)
+
+=back
+
+Note: This script can be set up in a cron job to run weekly/monthly/etc. Previous versions that are unsaved (see save_version.pl) are deleted except for the most recent (i.e. it will keep the most recent version in case their is problem with the update). Then all data is re-downloaded, re-unpacked, and re-loaded into the database.
+
+=head1 AUTHOR
+
+Morgan Langille, E<lt>morgan.g.i.langille@gmail.comE<gt>
+
+=cut
+

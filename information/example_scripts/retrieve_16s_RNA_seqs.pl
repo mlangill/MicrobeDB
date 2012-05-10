@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #Copyright (C) 2011 Morgan G.I. Langille
 #Author contact: morgan.g.i.langille@gmail.com
@@ -24,10 +24,7 @@
 
 #See table_search_example.pl, if you want to do a simple search on a mysql db table that is not part of the microbedb api  
 
-
-#This script retrieves all chromosome replicons from a single download version,
-#Then, each replicon is processed to get the genomeproject annotations associated with it
-#Finally, the actual replicon sequence is retrieved
+#This script retrieves all annotated 16s genes and outputs them in fasta file format.
 
 use warnings;
 use strict;
@@ -56,7 +53,7 @@ foreach my $curr_rep_obj (@result_objs) {
 	#get the name of the replicon
 	my $rep_name = $curr_rep_obj->definition();
 	
-#get the replicon accesion
+	#get the replicon accesion
 	my $rep_accnum = $curr_rep_obj->rep_accnum();
 
 	#get all genes associated with this chromosome
