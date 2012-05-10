@@ -34,13 +34,15 @@ BEGIN{
 }
 use fields @FIELDS;
 
-#PATH Settings
+use Log::Log4perl qw(get_logger :nowarn);
+my $logger = Log::Log4perl->get_logger();
+
 
 #MicrobeDB MySQL settings
-my $db = 'microbedb';
-my $db_config = "$ENV{HOME}/.my.cnf";
-die "MySQL config file:$db_config can not be found!" unless -e $db_config;
-my $dsn = "DBI:mysql:database=$db;mysql_read_default_file=$db_config";
+my $db_config = $ENV{HOME}/.my.cnf";
+$logger->logdie("MySQL config file: $db_config can not be found!") unless -e $db_config;
+my $database=$ENV{"MicrobeDB"}||"microbedb";  # if unable to access .bashrc, use microbedb
+my $dsn = "DBI:mysql:database=$database;mysql_read_default_file=$db_config";
 
 #note that these fields are taken from the config file "my.cnf"
 my ($user,$pass) = ("","");
@@ -121,13 +123,13 @@ sub _db_connect {
 		eval {
 			#Try to connect to microbeDB
 			$dbh = DBI->connect( $dsn, $user, $pass, { RaiseError => 1 } )
-			  || die $DBI::errstr;
+			  || $logger->logdie($DBI::errstr);
 		};
 		#if there is an error or we the handle is empty then try again
 		if($@ || !defined($dbh)){
 	
-		croak("Failed to connect to microbeDB! $max_tries tries have failed! \n$@") if $try == $max_tries;
-		warn "Failed to connect to microbeDB! Trying again in 5 seconds. This is attempt $try of $max_tries. \n$@";
+		$logger->logcroak("Failed to connect to microbeDB! $max_tries tries have failed! $@") if $try == $max_tries;
+		$logger->logwarn("Failed to connect to microbeDB! Trying again in 5 seconds. This is attempt $try of $max_tries. $@");
 		
 		#increase wait time by 5 seconds on each failure
 		sleep(5*$try);
@@ -136,7 +138,7 @@ sub _db_connect {
 		}
 	}
 	unless(defined($dbh)){
-	    die "Can't connect to db:$!";
+	    $logger->logdie("Can't connect to db: $!");
 	}
 	
 	# Save the dhb for later

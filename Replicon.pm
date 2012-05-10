@@ -30,7 +30,11 @@ use Carp;
 
 
 use MicrobeDB::Gene;
+use MicrobeDB::GenomeProject;
 require MicrobeDB::Search;
+
+use Log::Log4perl qw(get_logger :nowarn);
+my $logger = Log::Log4perl->get_logger();
 
 my @FIELDS;
 my @replicon;
@@ -63,7 +67,9 @@ BEGIN {
   rna_num
   file_types
   rep_seq
+  distance_calculated
 );
+
 
 @version = qw(
   version_id
@@ -100,6 +106,24 @@ my @_other = qw(
 
 use fields  @FIELDS;
 
+# Needed for outputting fasta files,
+# these are the allowed substitutions in the string
+my %header_lookup = (
+    'gene_id'    => '$gene->gene_id',
+    'ref'        => '$gene->protein_accnum',
+    'gi'         => '$gene->pid',
+    'rpv_id'     => '$gene->rpv_id',
+    'gpv_id'     => '$gene->gpv_id',
+    'start'      => '$gene->gene_start',
+    'end'        => '$gene->gene_end',
+    'length'     => '$gene->gene_length',
+    'locus_tag'  => '$gene->locus_tag',
+    'desc'       => '$gene->gene_product',
+    'rep_desc'   => '$self->definition',
+    'rep_accnum' => '$self->rep_accnum',
+    'rep_type'   => '$self->rep_type', 
+);
+
 sub new {
 	my ( $class, %arg ) = @_;
 
@@ -130,6 +154,7 @@ sub new {
 		#set the attribute in the object
 		$self->$attr( $arg{$attr} );
 	}
+
 	return $self;
 }
 
@@ -138,21 +163,32 @@ sub new {
 #undef is returned if that file is not available for that replicon (based on the file_types field)
 sub get_filename {
 	my ($self,$file_suffix)=@_;
-	
+
 	#check to see if the file type is available for this replicon
 	unless($self->file_types =~ /( |^)\.$file_suffix( |$)/){
 		return undef;	
 	}
 	my $search_obj = new MicrobeDB::Search(return_obj => 'MicrobeDB::GenomeProject');
+
+	if (!defined($search_obj)) {
+		$logger->error("Genome Project is missing!?");
+	}
+
 	my ($gpo) = $search_obj->object_search($self);
+
+	if (!defined($gpo)) {
+		$logger->error($self->rep_accnum, " is missing in GenomeProject");
+	}
+
 	my $file_name = $gpo->gpv_directory() . $self->file_name() . ".$file_suffix";
-	
+
 	#small hack since symbolic links will not work when called by php from web browser
 	unless($file_name =~ /home.westgrid/){
 	    if($file_name =~ /home\/shared/){
 	        $file_name =~ s/home/home.westgrid/;
 	    }
 	}
+
 	return $file_name;
 }
 
@@ -165,7 +201,7 @@ sub add_gene {
 	} elsif ( ref($gene) eq 'HASH' ) {
 		$gene_obj = new MicrobeDB::Gene(%$gene);
 	} else {
-		croak "Only a Gene object or hash can be used to add a Gene";
+		$logger->logcroak("Only a Gene object or hash can be used to add a Gene");
 	}
 	push( @{ $self->{genes} }, $gene_obj );
 }
@@ -243,6 +279,48 @@ sub _retrieve_rep_seq{
     my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
     
     return $replicon->rep_seq();
+}
+
+sub write_fasta {
+    my ($self, %args) = @_;
+
+    my $outfile = $args{'filename'} || $self->file_name;
+
+    my $append = $args{'append'} || 0;
+
+    my $seqtype = $args{'seqtype'} || 'protein';
+
+    my $headerfmt = $args{'headerfmt'} || 'gi|#gi#|ref|#ref#| #desc# [#rep_desc#]';
+
+    # If the user already gave the filename an extension
+    # don't tack one on
+    unless($outfile =~ /\.\S{3}$/) {
+	$outfile .= ($seqtype eq 'protein' ? '.faa' : '.ffn');
+    }
+
+    # Build the outfile name
+    my $writeline = ($append?'>':'') . ">$outfile";
+
+    open(OUT, $writeline) or
+	croak "Error opening fasta file $outfile: $!\n";
+
+    foreach my $gene (@{$self->genes()}) {
+	unless(ref($gene) eq 'MicrobeDB::Gene') {
+	    croak "Only a Gene object can be returned here, this is a " . ref($gene);
+	}
+
+	next if(($seqtype eq 'protein') && !($gene->protein_seq));
+	next if(($seqtype eq 'dna') && !($gene->gene_seq));
+
+	# Evaluate the header format string
+	(my $header = $headerfmt) =~ s/#(\w+)#/$header_lookup{$1}/gee;
+	print OUT ">$header\n";
+	print OUT join("\n", grep { $_ } split(/(.{1,70})/,
+		      ($seqtype eq 'protein'?$gene->protein_seq:$gene->gene_seq)));
+	print OUT "\n";
+    }
+
+    close OUT;
 }
 
 sub table_names {    

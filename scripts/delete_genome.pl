@@ -43,6 +43,7 @@ chdir($path);
 use lib "../../";
 use lib "./";
 use MicrobeDB::Search;
+use MicrobeDB::GenomeProject;
 
 my ($dir,$logger_cfg,$custom,$help,$version_id,$gpv_id);
 my $res = GetOptions("directory=s" => \$dir,

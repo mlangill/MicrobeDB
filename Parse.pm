@@ -71,6 +71,13 @@ sub parse_genome{
 
     my $gpo=$self->gpo();
     $gpo->gpv_directory($dir);
+    $logger->debug("Parsing directory: $dir");
+
+    # Parse directory name for gp_id
+    if($dir =~ /.*_uid(\d+)\/?$/) {
+	$gpo->gp_id($1);
+	$logger->debug("Found gp_id: $1");
+    }
 
     my @files = glob($dir.'*');
 
@@ -154,7 +161,8 @@ sub parse_gbk {
 	    $rep->rep_seq($seq->seq());
 	    $rep->file_name($file_name);
 	    $rep->file_types($file_types);
-	    $rep->rep_accnum($seq->accession_number());
+	    my $rep_accnum = $seq->accession_number().'.'.$seq->version();
+	    $rep->rep_accnum($rep_accnum);
 
 	    my $rep_ginum = $seq->primary_id();
 	    unless($rep_ginum =~ /\D/){
@@ -322,10 +330,11 @@ sub parse_ncbicompgenomefile {
 sub parse_ncbiorginfofile {
     my($self,$org_info_file)=@_;
     my $gpo=$self->gpo();
-    my $taxon_id=$gpo->taxon_id();
+#    my $taxon_id=$gpo->taxon_id();
+    my $gp_id = $gpo->gp_id();
 
-    unless($taxon_id){
-	$logger->warn("No taxon_id so can't look up organism information in $org_info_file");
+    unless($gp_id){
+	$logger->warn("No gp_id so can't look up organism information in $org_info_file");
 	return;
     }
 
@@ -343,7 +352,8 @@ sub parse_ncbiorginfofile {
 	    }
 	} elsif (/^\d+\s+\w+/) {
 	    my @entries = split(/\t/);
-	    if ( $entries[2] == $taxon_id ) {
+#	    if ( $entries[2] == $taxon_id ) {
+	    if ( $entries[0] == $gp_id ) {
 		my $i=0;
 		foreach (@entries) {
 		    $info_org_parse{ $headings[$i] } = $_;
@@ -356,7 +366,7 @@ sub parse_ncbiorginfofile {
     }
     if($found_orginfo){
 	#map the old code parse hash to the gpo
-	$gpo->gp_id($info_org_parse{'RefSeq project ID'}) if exists($info_org_parse{'RefSeq project ID'});
+#	$gpo->gp_id($info_org_parse{'RefSeq project ID'}) if exists($info_org_parse{'RefSeq project ID'});
 	$gpo->gram_stain($info_org_parse{'Gram Stain'}) if exists($info_org_parse{'Gram Stain'});
 	$gpo->disease($info_org_parse{'Disease'}) if exists($info_org_parse{'Disease'});
 	$gpo->pathogenic_in($info_org_parse{'Pathogenic in'}) if exists($info_org_parse{'Pathogenic in'});
@@ -391,7 +401,7 @@ sub parse_ncbiorginfofile {
 	}
 	
     }else{
-	$logger->warn("Couldn't find taxon id: $taxon_id within the org_info_file: $org_info_file . Many fields in GenomeProject will not be filled for this organism");
+	$logger->warn("Couldn't find gp id: $gp_id within the org_info_file: $org_info_file . Many fields in GenomeProject will not be filled for this organism");
     }
 
 }

@@ -29,6 +29,8 @@
 
 #Author Morgan Langille, http://morganlangille.com
 
+$|++;
+
 use strict;
 use warnings;
 use Getopt::Long;
@@ -140,6 +142,7 @@ $logger->info("Finished unpacking genome files");
 
 #Load all genomes into microbedb as a new version
 $logger->info("Parsing and loading each genome into NCBI");
+
 my $load_cmd = "$path/load_version.pl -l logger.conf -d $download_dir";
 if(defined($parallel)){
     $load_cmd .=" -p $cpu_count";

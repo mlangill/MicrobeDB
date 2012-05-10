@@ -32,8 +32,11 @@ use base ("MicrobeDB::MicrobeDB");
 use Carp;
 
 require MicrobeDB::Replicon;
-
 require MicrobeDB::Search;
+
+use Log::Log4perl qw(get_logger :nowarn);
+my $logger = Log::Log4perl->get_logger();
+
 
 my @FIELDS;
 my @_db_fields;
@@ -154,6 +157,14 @@ sub new {
 					$arg{$attr}->[$i] = new MicrobeDB::Replicon( %{ $arg{$attr}->[$i] } );
 				}
 			}
+		} elsif ($attr eq 'genome_size') {
+			# We have to test genome_size and genome_gc to see if they're
+			# null, otherwise when it tries to retreive the replicons
+			# to calculate it and gpv_id isn't yet set bad things happen.
+			# (infinite loop)
+			next unless$arg{$attr};			
+		} elsif ($attr eq 'genome_gc') {
+			next unless$arg{$attr};			
 		}
 
 		#do the same for references
@@ -185,7 +196,7 @@ sub add_replicon {
 	} elsif ( ref($rep) eq 'HASH' ) {
 		$rep_obj = new MicrobeDB::Replicon(%$rep);
 	} else {
-		croak "Only a MicrobeDB::Replicon object or hash can be used to add a Replicon";
+		$logger->logcroak("Only a MicrobeDB::Replicon object or hash can be used to add a Replicon");
 	}
 	push( @{ $self->{replicons} }, $rep_obj );
 }
@@ -212,6 +223,12 @@ sub next_replicon {
 #retrieves all replicons for this genome project
 sub _retrieve_replicons{
     my ($self) =@_;
+
+    # In case a genome didn't load properly and we don't
+    # get back a proper object, we DON'T want to search
+    # with no gpv_id, ugh, not good.
+    return () unless( $self->{gpv_id});
+
     my $rep = new MicrobeDB::Replicon(gpv_id => $self->gpv_id());
     my $so = new MicrobeDB::Search();
     my @reps = $so->object_search($rep);

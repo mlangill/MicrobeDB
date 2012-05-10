@@ -34,6 +34,7 @@ require MicrobeDB::Replicon;
 require MicrobeDB::GenomeProject;
 require MicrobeDB::Gene;
 require MicrobeDB::Version;
+require MicrobeDB::Iterator;
 
 my @FIELDS;
 BEGIN{
@@ -59,6 +60,10 @@ my @_db_connect = qw(
 
 }
 use fields @FIELDS;
+
+use Log::Log4perl qw(get_logger :nowarn);
+my $logger = Log::Log4perl->get_logger();
+
 
 sub new {
 	my ( $class, %arg ) = @_;
@@ -139,10 +144,10 @@ sub table_search {
 
 #called by the user to do a search using an object as the search fields
 sub object_search {
-	my ( $self, $search_obj ) = @_;
-    
-    croak "A search object must be defined when using object_search()!\n" unless defined($search_obj);
-	
+	my ( $self, $search_obj, %attr ) = @_;
+
+	$logger->logcroak("A search object must be defined when using object_search()") unless defined($search_obj);
+
 	my $obj_type = ref($search_obj);
 
 	#If the return object is not set use the search object by default
@@ -219,6 +224,15 @@ sub object_search {
 
 	my @return_objs;
 
+	# Were we asked to return an iterator rather than
+	# the full object?
+	if($attr{Iterator}) {
+	    print "We want an iterator\n";
+	    my $it = MicrobeDB::Iterator->new(ret_obj => $ret_obj, dbh_obj => $sth );
+
+	    return $it;
+	}
+
 	#Extract the results back into objects
 	{
 
@@ -230,6 +244,7 @@ sub object_search {
 			push( @return_objs, $ret_obj->new(%$curr_row) );
 		}
 	}
+
 	$dbh->disconnect();
 	return @return_objs;
 }

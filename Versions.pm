@@ -26,7 +26,6 @@ use warnings;
 
 #inherit common methods and fields from the MicroDB class
 use base ("MicrobeDB::MicrobeDB");
-use Data::Dumper;
 
 use MicrobeDB::Search;
 use MicrobeDB::Version;
@@ -52,7 +51,6 @@ sub new {
 
     $self->index(0);
 
-    print Dumper $self->{versions};
 
     return $self;
 }

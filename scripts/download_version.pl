@@ -80,7 +80,7 @@ sub NCBI_aspera{
 #    my $parentdir  = "$download_parent_dir";
 #    my $prefix     = 'Bacteria';
 #    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
-    my @file_types = qw/faa ffn fna frn gbk gff rpt/;
+    my @file_types = qw/faa ffn fna frn gbk gff rpt ptt/;
     my $parameters = '';
     my $overwrite  = 0;                                   #default is not to overwrite
     my $get_gprj = 1;    #default is to get the organism info and complete genome files
