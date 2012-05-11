@@ -39,7 +39,7 @@ my $logger = Log::Log4perl->get_logger();
 
 
 #MicrobeDB MySQL settings
-my $db_config = $ENV{HOME}/.my.cnf";
+my $db_config = "$ENV{HOME}/.my.cnf";
 $logger->logdie("MySQL config file: $db_config can not be found!") unless -e $db_config;
 my $database=$ENV{"MicrobeDB"}||"microbedb";  # if unable to access .bashrc, use microbedb
 my $dsn = "DBI:mysql:database=$database;mysql_read_default_file=$db_config";
