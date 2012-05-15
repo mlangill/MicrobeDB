@@ -97,30 +97,33 @@ if($search||$draft_flag||$draft_only_flag){
     $ftp_flag=1;
 }
 
+$logger->logdie("The local directory doesn't exist, please create it first") unless  -e $download_dir ;
+
+
 $logger->info("Downloading files to directory: $download_dir");
+
+my $logfile = $download_dir . "log.txt";   
+#Create the log file if it doesn't exist already
+&createfile($logfile) unless ( -e $logfile );
+
+#Get the metadata for the genomes
+&get_genomeprojfiles($download_dir); 
 
 if($ftp_flag){    
     #Download all genomes from NCBI using FTP
-    $logger->info("Downloading files using FTP option");
+    $logger->info("Downloading genomes using FTP option");
     $download_dir = NCBIftp_wget3($download_dir);
 }else{
     #Download all genomes from NCBI using ASPERA
-    $logger->info("Downloading files using Aspera option");
+    $logger->info("Downloading genomes using Aspera option");
     $download_dir = NCBI_aspera($download_dir);
 }
 
 sub NCBI_aspera{
     my $download_dir= shift;
-	
+
     my $remotedir  = 'genomes/Bacteria/';
-    my $logdir = $download_dir . 'log/';
-    my $logfile = $logdir . "NCBI_FTP.log";
-    `mkdir -p $logdir` unless -d $logdir;
-    $logger->logdie("The local directory doesn't exist, please create it first") unless  -e $download_dir ;
-
-    &get_genomeprojfiles($download_dir); 
-
-
+    
     #check if 32 bit or 64 bit
     my $ascp_dir;
     if($Config{osname} =~/linux/){
@@ -138,11 +141,9 @@ sub NCBI_aspera{
 	$logger->logdie("Can't figure out what OS you are using so can't use aspera to download. You can try downloading by FTP instead by using --ftp option.");
     }
   
-    my $parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 100M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
+    my $parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 100M -k2 -L $download_dir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
     
 
-    #Create the log file if it doesn't exist already
-    &createfile($logfile) unless ( -e $logfile );
     foreach(@file_types){
 	my $remotefile='all.'.$_.'.tar.gz';
 	&runascp( $parameters, $remotedir, $remotefile,$download_dir );
@@ -179,22 +180,8 @@ sub NCBIftp_wget3 {
     my $localdir= shift;
 	
     my $host       = 'ftp://ftp.ncbi.nih.gov';
-
-    my $logdir = $localdir . 'log/';
-    my $logfile = $logdir . "NCBI_FTP.log";
-    `mkdir -p $logdir` unless -d $logdir;
-
-    $logger->logdie("The local directory doesn't exist, please create it first\n") unless  -e $localdir ;
-
-    #Create the log file if it doesn't exist already
-    &createfile($logfile) unless ( -e $logfile );
-
     
     my $wget_parameters = "--passive-ftp -P $localdir -m -nH --cut-dirs=2 -w 2 -nv -K -R val -a $logfile ";
-
-    #get information about genomes
-    &get_genomeprojfiles($localdir); 
-
     
     unless($draft_only_flag){
 	#Download genomes from RefSeq
@@ -276,7 +263,7 @@ sub runwget {
 sub get_ftp_file_list{
     my ($ftp_site)=@_;
     
-    my $list_cmd="wget -q --no-remove-listing $ftp_site";
+    my $list_cmd="wget --no-remove-listing -a $logfile $ftp_site";
     my $status=system($list_cmd);
     if($status){
         $logger->logdie("Can't get list of files from $ftp_site");
@@ -306,7 +293,7 @@ sub get_genomeprojfiles {
     #However, this new file is very limited (does not contain any organism information), and is using the new BioProject Accession (PRJNAXXXX) which is not being well supported by NCBI yet (i.e older genome id is still in directory name and all genbank records).
  
     my $ncbi_org_dir='ftp://ftp.ncbi.nih.gov/genomes/genomeprj';
-    my $wget_parameters='--passive-ftp -q ';
+    my $wget_parameters="-a $logfile --passive-ftp ";
    
     #get NCBI_orginfo.txt
     my $ncbi_orginfo_remote='lproks_0.txt';
