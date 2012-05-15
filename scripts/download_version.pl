@@ -44,6 +44,7 @@ my @valid_file_types=qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk g
 #create a hash with valid file types as keys
 my %valid_file_type_lookup = map {$_=>1}@valid_file_types;
 
+
 my ($download_dir,$logger_cfg,$ftp_flag,$draft_flag,$draft_only_flag,$search,@types_of_files,$help);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "search=s" =>\$search,
@@ -112,7 +113,6 @@ sub NCBI_aspera{
     my $download_dir= shift;
 	
     my $remotedir  = 'genomes/Bacteria/';
-    my $parameters = '';
     my $logdir = $download_dir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
     `mkdir -p $logdir` unless -d $logdir;
@@ -137,11 +137,9 @@ sub NCBI_aspera{
     }else{
 	$logger->logdie("Can't figure out what OS you are using so can't use aspera to download. You can try downloading by FTP instead by using --ftp option.");
     }
-    #s parameters: turn on mirroring; no host directory;
-    # non-verbose; exclude .val files; .listing file kept;
-    if ( $parameters eq '' ) {
-	$parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 100M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
-    }
+  
+    my $parameters = "$path/".$ascp_dir."/connect/bin/ascp -QT -l 100M -k2 -L $logdir -i ".$path.'/'.$ascp_dir."/connect/etc/asperaweb_id_dsa.putty ". 'anonftp@ftp-private.ncbi.nlm.nih.gov:/';
+    
 
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
@@ -188,16 +186,11 @@ sub NCBIftp_wget3 {
 
     $logger->logdie("The local directory doesn't exist, please create it first\n") unless  -e $localdir ;
 
-    my $parameters = '';
-   
-    #s parameters: turn on mirroring; no host directory;
-    # non-verbose; exclude .val files; .listing file kept;
-    if ( $parameters eq '' ) {
-        $parameters = "--passive-ftp -P $localdir -m -nH --cut-dirs=2 -w 2 -nv -K -R val -a $logfile ";
-    }
-
     #Create the log file if it doesn't exist already
     &createfile($logfile) unless ( -e $logfile );
+
+    
+    my $wget_parameters = "--passive-ftp -P $localdir -m -nH --cut-dirs=2 -w 2 -nv -K -R val -a $logfile ";
 
     #get information about genomes
     &get_genomeprojfiles($localdir); 
@@ -216,13 +209,13 @@ sub NCBIftp_wget3 {
 		$logger->info("Downloading genome: $genome_dir");
 		foreach my $file_type (@file_types){
 		    my $remotedir = 'genomes/Bacteria/'.$genome_dir.'/*.'.$file_type;	    
-		    &runwget( $parameters, $host, $remotedir );
+		    &runwget( $wget_parameters, $host, $remotedir );
 		}
 	    }
 	}else{
 	    foreach my $file_type (@file_types){
 		my $remotedir  = 'genomes/Bacteria/all.'.$file_type.'.tar.gz';
-		&runwget( $parameters, $host, $remotedir );
+		&runwget( $wget_parameters, $host, $remotedir );
 	    }	
 	}
     }
@@ -246,7 +239,7 @@ sub NCBIftp_wget3 {
 	    $logger->info("Downloading genome: $genome_dir");
 	    foreach my $file_type (@file_types){
 		my $remotedir = $root_dir.$genome_dir.'/*contig.'.$file_type.'.tgz';	    
-		&runwget( $parameters, $host, $remotedir );
+		&runwget( $wget_parameters, $host, $remotedir );
 	    }
 	}
     }
@@ -263,11 +256,12 @@ sub runwget {
     my ( $parameters, $host, $remotedir ) = @_;
     my $status = 1;
     my $count  = 0;
+    my $stdout;
     while ( $status != 0 && $count < 5 ) {
     	my $wget_cmd = "wget $parameters $host/$remotedir";
-        $status = system($wget_cmd);
-        
-	if($status){
+        $stdout=`$wget_cmd`;
+	$status=$? >> 8;
+	if($?){
 	    $logger->warn("Problem with downloading! Waiting 60 seconds before attempting again.");
 	    sleep 60;
 	}
@@ -276,6 +270,7 @@ sub runwget {
     if($status){
 	$logger->logdie("Could not complete downloading, after $count attempts!");
     }
+    return $stdout;
 }
 
 sub get_ftp_file_list{
@@ -310,40 +305,32 @@ sub get_genomeprojfiles {
     #Note2: Supposedly these are going to be phased out and replaced by: ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/prokaryotes.txt
     #However, this new file is very limited (does not contain any organism information), and is using the new BioProject Accession (PRJNAXXXX) which is not being well supported by NCBI yet (i.e older genome id is still in directory name and all genbank records).
  
-    #my $ncbi_orginfo_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=0&dump=selected';
-    my $ncbi_orginfo_url=' ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_0.txt';
+    my $ncbi_org_dir='ftp://ftp.ncbi.nih.gov/genomes/genomeprj';
+    my $wget_parameters='--passive-ftp -q ';
+   
+    #get NCBI_orginfo.txt
+    my $ncbi_orginfo_remote='lproks_0.txt';
     my $ncbi_orginfo_file=$localdir."NCBI_orginfo.txt";
+    $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_org_dir/$ncbi_orginfo_remote");  
+    runwget($wget_parameters."-O $ncbi_orginfo_file",$ncbi_org_dir,$ncbi_orginfo_remote);
 
-    $logger->info("Downloading file: $ncbi_orginfo_file from NCBI at: $ncbi_orginfo_url");
-
-    my $ncbi_orginfo_content    = get($ncbi_orginfo_url);
-    open( my $ORGINFO,'>', $ncbi_orginfo_file ) or die "Can't create file $ncbi_orginfo_file";
-    print $ORGINFO $ncbi_orginfo_content;
-    close $ORGINFO;
-
-    #my $ncbi_compgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=1&dump=selected';
-    my $ncbi_compgen_url='ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_1.txt';
-
+    #get NCBI_completegenomes.txt
+    my $ncbi_compgen_remote='lproks_1.txt';
     my $ncbi_compgen_file=$localdir."NCBI_completegenomes.txt";
-
-    $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_compgen_url");
-
-    my $ncbi_compgen_content   = get($ncbi_compgen_url);
-    open( my $COMPGEN, '>',$ncbi_compgen_file ) or die "can't create file $ncbi_compgen_file";
-    print $COMPGEN $ncbi_compgen_content;
+    $logger->info("Downloading file: $ncbi_compgen_file from NCBI at: $ncbi_org_dir/$ncbi_compgen_remote");
+    runwget($wget_parameters."-O $ncbi_compgen_file",$ncbi_org_dir,$ncbi_compgen_remote);
     
+    #get info about incomplete genomes
+    my $ncbi_incompgen_remote='lproks_2.txt';
+    $logger->info("Downloading incomplete genome information from NCBI at: $ncbi_org_dir/$ncbi_incompgen_remote");
+    my $ncbi_incompgen_content = runwget($wget_parameters."-O -",$ncbi_org_dir,$ncbi_compgen_remote);
 
-    #my $ncbi_incompgen_url='http://www.ncbi.nih.gov/genomes/lproks.cgi?view=2&dump=selected';
-    my $ncbi_incompgen_url='ftp://ftp.ncbi.nih.gov/genomes/genomeprj/lproks_2.txt';
-
-    $logger->info("Downloading incomplete genome information from NCBI at: $ncbi_incompgen_url");
-
-    my $ncbi_incompgen_content   = get($ncbi_incompgen_url);
-
+    #append the incomplete genome info the completed genome info table file
     $logger->debug("Formatting incomplete genome table to match completed genome table.");
-    
     my $formatted_incompgen_content=format_incomplete_table_to_match_ncbi_complete_table($ncbi_incompgen_content);
+    
     $logger->info("Appending information on incomplete genomes to $ncbi_compgen_file");
+    open( my $COMPGEN, '>>',$ncbi_compgen_file ) or die "can't create file $ncbi_compgen_file";
     print $COMPGEN $formatted_incompgen_content;
     close $COMPGEN;
 
