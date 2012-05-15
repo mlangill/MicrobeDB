@@ -112,10 +112,6 @@ sub NCBI_aspera{
     my $download_dir= shift;
 	
     my $remotedir  = 'genomes/Bacteria/';
-#    my $parentdir  = "$download_parent_dir";
-#    my $prefix     = 'Bacteria';
-#    my @file_types = qw/GeneMark Glimmer3 Prodigal asn cog faa ffn fna frn gbk gff ptt rnt rps rpt val/;
-    my @file_types = qw/faa ffn fna frn gbk gff rpt ptt/;
     my $parameters = '';
     my $logdir = $download_dir . 'log/';
     my $logfile = $logdir . "NCBI_FTP.log";
