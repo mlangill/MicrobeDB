@@ -107,13 +107,13 @@ sub parse_genome{
 	$logger->debug("Parsing file: $NCBI_org_info");
 	$self->parse_ncbiorginfofile( $NCBI_org_info);
     }else{
-	$logger->warn("Can't find file:$NCBI_comp_genomes . GenomeProject table will not contain much organism information.");
+	$logger->warn("Can't find file:$NCBI_org_info . GenomeProject table will be missing metadata information. This file should have been produced when download_version.pl was run.");
     }
     if(-e $NCBI_comp_genomes){
 	$logger->debug("Parsing file: $NCBI_comp_genomes");
 	$self->parse_ncbicompgenomefile( $NCBI_comp_genomes);
     }else{
-	$logger->warn("Can't find file:$NCBI_comp_genomes . GenomeProject table will be missing a few fields of information.");
+	$logger->warn("Can't find file:$NCBI_comp_genomes . GenomeProject table will be missing metadata information. This file should have been produced when download_version.pl was run.");
     }
 
     return $gpo;
