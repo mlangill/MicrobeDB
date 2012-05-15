@@ -42,6 +42,34 @@ Updating the MicrobeDB software
 ===============================
 * To update your MicrobeDB software see [MicrobeDB/information/UPDATE/UPDATE.md](https://github.com/mlangill/MicrobeDB/blob/master/information/UPDATE/UPDATE.md).
 
+
+Testing the MicrobeDB installation
+==================================
+* To test if MicrobeDB is installed properly we will download a single genome and load it into the MySQL database.
+* All programs are run from the command line and are located in "scripts" directory.
+
+        cd MicrobeDB/scripts
+
+* Run MicrobeDB specifying a single genome (note this will create a dated directory in your home directory):
+
+        ./download_load_and_delete_old_version.pl -d ~/ -s '-s Pseudomonas_aeruginosa_LES'
+
+* The previous command should give you information about what it is doing without any errors. 
+
+* You can test the MicrobeDB API and the ability to get information out of the database by running the example scripts:
+
+        cd MicrobeDB/information/example_scripts
+		./get_genome_sizes_of_aquatic_genomes.pl
+		./search_for_pathogen_recA_genes.pl
+	
+* Running the example scripts should print information to the terminal without any errors.
+
+* To remove this test "version". Run the command below and answer the interactive prompts:
+
+        MicrobeDB/scripts/delete_version.pl
+		
+* Great MicrobeDB is installed correctly and you can now proceed with downloading a complete version of genomes (see next section). 
+
 Downloading a new "version" of genomes with MicrobeDB
 =====================================================
 * To use MicrobeDB you will have to download and load a new version of genome files. 
