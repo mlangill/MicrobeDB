@@ -67,7 +67,6 @@ BEGIN {
   rna_num
   file_types
   rep_seq
-  distance_calculated
 );
 
 
