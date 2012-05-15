@@ -68,33 +68,38 @@ my @compressed_files = glob($download_dir .'all.*.tar.gz');
 #Also decompress individual .tgz files within genome directories (format of incomplete/draft genomes)
 push(@compressed_files,glob($download_dir.'*/*.tgz'));
 
-$logger->logdie("Didn't find any files to uncompress. Are you sure your directory: \"$download_dir\" contains compressed files?") unless @compressed_files;
+if(@compressed_files){
 
+    $logger->info("Parallel proccessing the unpacking step with $cpu_count proccesses.") if defined($parallel);
+    my $pm = new Parallel::ForkManager($cpu_count);
 
-$logger->info("Parallel proccessing the unpacking step with $cpu_count proccesses.") if defined($parallel);
-my $pm = new Parallel::ForkManager($cpu_count);
-
-for my $tarball (@compressed_files){
-    my $pid = $pm->start and next; 
-    $logger->info("Unpacking $tarball");
-    
-    my $dir=dirname($tarball);
-
-    if($dir){
-	system("tar xvf $tarball -C $dir");
-    }else{	
-	system("tar xzf $tarball");
+    for my $tarball (@compressed_files){
+	my $pid = $pm->start and next; 
+	$logger->info("Unpacking $tarball");
+	
+	my $dir=dirname($tarball);
+	
+	if($dir){
+	    system("tar xvf $tarball -C $dir");
+	}else{	
+	    system("tar xzf $tarball");
+	}
+	
+	$logger->logdie("Unpacking of $tarball failed!") if $?;
+	
+	$logger->info("Done unpacking and now deleting $tarball");
+	unlink($tarball);
+	
+	$pm->finish;
     }
+    $pm->wait_all_children;
+    $logger->info("All done unpacking.");
 
-    $logger->logdie("Unpacking of $tarball failed!") if $?;
-    
-    $logger->info("Done unpacking and now deleting $tarball");
-    unlink($tarball);
-    
-     $pm->finish;
+}else{
+
+    $logger->info("Didn't find any files to decompress in \"$download_dir\".");
 }
-$pm->wait_all_children;
-$logger->info("All done unpacking.");
+
 
 __END__
 
