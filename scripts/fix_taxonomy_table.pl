@@ -31,9 +31,11 @@ use Pod::Usage;
 use lib "../../";
 use MicrobeDB::Search;
 use MicrobeDB::Parse;
+use MicrobeDB::FullUpdate;
 
-my $help;
-my $res = GetOptions("help"=>\$help)or pod2usage(2);
+my ($help,$version_id);
+my $res = GetOptions(    "version=i"=> \$version_id,
+"help"=>\$help)or pod2usage(2);
 
 pod2usage(-verbose=>2) if $help;
 
@@ -45,7 +47,7 @@ my $logger = Log::Log4perl->get_logger;
 
 #retrieve all genome projects
 my $so= new MicrobeDB::Search();
-my @gpos=$so->object_search(new MicrobeDB::GenomeProject());
+my @gpos=$so->object_search(new MicrobeDB::GenomeProject(version_id=>$version_id));
 
 foreach my $gpo(@gpos){
     my $taxon_id=$gpo->taxon_id();
@@ -53,11 +55,24 @@ foreach my $gpo(@gpos){
 
     next if defined($gpo->superkingdom());
 
-    $logger->info("No taxonomy information exists for taxon_id: $taxon_id. Going to reload this genome.");
-    
-    my $dir = $gpo->gpv_directory();
-    system("./reload_genome.pl -d $dir");
+    $logger->info("No taxonomy information exists for taxon_id: $taxon_id. Retrieving it now.");
 
+    my $parse_obj=MicrobeDB::Parse->new('gpo'=>$gpo);
+
+    #get the taxonomy from NCBI
+    $parse_obj->parse_taxonomy();
+
+    unless(defined($gpo->superkingdom())) {
+	$logger->info("Still couldn't retrieve information for taxon_id: $taxon_id.");
+	next;
+    }
+    
+    #create an update object
+    my $update_obj = MicrobeDB::FullUpdate->new('version_id'=>$gpo->version_id());
+
+    #insert the taxonomy information to the taxonomy table (should replace if taxon_id already exists)
+    my $tax_id = $update_obj->_insert_record( $gpo, 'taxonomy' );
+    
 }
 	
 
@@ -65,19 +80,30 @@ __END__
 
 =head1 Name
 
-fix_taxonomy_table.pl - Reloads a single genome into MicrobeDB
+fix_taxonomy_table.pl - Retrieves missing taxonomy information.
 
 =head1 USAGE
 
-fix_taxonomy_table.pl [-h]
+fix_taxonomy_table.pl [-h -v <version_id>]
 
 E.g.
 
+#Find missing taxonomy information for genomes in all versions
+
 fix_taxonomy_table.pl
+
+#Find missing taxonomy information for genomes in a specific version
+
+fix_taxonomy_table.pl -v 23
+
 
 =head1 OPTIONS
 
 =over 4
+
+=item B<-v, --version_id>
+
+Only get fill missing taxonomy information for genomes associated with given version id. 
 
 =item B<-h, --help>
 
