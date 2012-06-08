@@ -268,7 +268,9 @@ sub rep_seq{
     if(defined($self->{rep_seq})){
 	return $self->{rep_seq};
     }else{
-        return $self->_retrieve_rep_seq();
+	
+        $self->{rep_seq}=$self->_retrieve_rep_seq();
+	return $self->{rep_seq};
     }
 }
 
