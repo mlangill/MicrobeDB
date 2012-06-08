@@ -78,7 +78,7 @@ sub new {
 #Creates a new record in the version table and returns the version number
 sub _new_version {
 	my ($self) = @_;
-	my $dbh = $self->_db_connect();
+	my $dbh = $self->dbh();
 
 	my $dir = $self->dl_directory();
 	unless($dir){
@@ -124,8 +124,6 @@ sub _new_version {
 #takes a GenomeProject object and adds it to the database including embedded Replicons and Genes
 sub update_genomeproject {
 	my ( $self, $gpo ) = @_;
-
-	$self->dbh($self->_db_connect());
 
 	#Set the version id
 	$gpo->version_id( $self->version_id );
@@ -190,6 +188,21 @@ sub replace {
 	}
 
 }
+
+sub dbh{
+    my ($self,$dbh) = @_;
+
+    #Set the new value for the attribute if given
+    $self->{dbh} = $dbh if defined($dbh);
+
+    if(defined($self->{dbh})){
+	return $self->{dbh};
+    }else{
+	$self->{dbh}=$self->_db_connect();
+        return $self->{dbh};
+    }
+}
+
 
 #inserts a record in the database
 #Requires the table name, an array ref of fields and an array ref of values
