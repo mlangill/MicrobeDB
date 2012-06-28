@@ -162,6 +162,10 @@ download_load_and_delete_old_version.pl -p -d /share/genomes/
 
 download_load_and_delete_old_version.pl -p 2 -d /share/genomes/
 
+#include incomplete genomes
+
+download_load_and_delete_old_version.pl -d /share/genomes -s '-i'
+
 =head1 OPTIONS
   
 =over 4
