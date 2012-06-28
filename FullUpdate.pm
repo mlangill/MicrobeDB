@@ -125,6 +125,9 @@ sub _new_version {
 sub update_genomeproject {
 	my ( $self, $gpo ) = @_;
 
+	#Need to create a new db connection (even if already set before), since this can be called in parallel
+	$self->dbh($self->_db_connect());
+
 	#Set the version id
 	$gpo->version_id( $self->version_id );
 
