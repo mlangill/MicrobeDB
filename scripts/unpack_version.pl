@@ -74,19 +74,24 @@ if(@compressed_files){
     my $pm = new Parallel::ForkManager($cpu_count);
 
     for my $tarball (@compressed_files){
+	if (-z $tarball){
+	    $logger->warn("Empty file found. Will skip unpacking of: $tarball");
+	    next;
+	}
 	my $pid = $pm->start and next; 
 	$logger->info("Unpacking $tarball");
 	
 	my $dir=dirname($tarball);
 	
 	if($dir){
-	    system("tar xvf $tarball -C $dir");
+	    system("tar xf $tarball -C $dir");
 	}else{	
 	    system("tar xzf $tarball");
 	}
 	
-	$logger->logdie("Unpacking of $tarball failed!") if $?;
-	
+	if($?){
+	  $logger->logdie("Unpacking of $tarball failed!");
+	}
 	$logger->info("Done unpacking and now deleting $tarball");
 	unlink($tarball);
 	
