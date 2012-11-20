@@ -90,7 +90,6 @@ if ( $MONTH < 10 ) { $MONTH = '0' . $MONTH; }
 my $download_dir = $download_parent_dir . "$prefix\_$YEAR\-$MONTH\-$DAY";
 $logger->info("Making download directory: $download_dir");
 `mkdir $download_dir` unless -d $download_dir;
-`mkdir $download_dir/log` unless -d "$download_dir/log";
 
 #Download all genomes from NCBI
 $logger->info("Downloading all genomes from NCBI.(Downloading time will vary depending on your connection and how flaky NCBI is today; (10 minutes to a few hours))\n");
