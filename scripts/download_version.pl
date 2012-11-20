@@ -107,7 +107,10 @@ my $logfile = $download_dir . "log.txt";
 &createfile($logfile) unless ( -e $logfile );
 
 #Get the metadata for the genomes
-&get_genomeprojfiles($download_dir); 
+#&get_genomeprojfiles($download_dir); 
+
+#Have to settle for using old metadata for now (see notes below)
+&get_deprecated_metafiles_from_dropbox($download_dir);
 
 if($ftp_flag){    
     #Download all genomes from NCBI using FTP
@@ -284,14 +287,41 @@ sub get_ftp_file_list{
     return @file_list;
 
 }
+
+#Note this is a temporary fix due to NCBI no longer hosting metadata files (see get_genomeprojfiles() comments below)
+sub get_deprecated_metafiles_from_dropbox{
+    my ($localdir)=@_;
+    
+    #http://dl.dropbox.com/u/5329340/NCBI_completegenomes.txt
+    #http://dl.dropbox.com/u/5329340/NCBI_orginfo.txt
+    my $wget_parameters="-a $logfile --passive-ftp ";
+    my $public_dropbox='http://dl.dropbox.com/u/5329340';
+
+    $logger->info("Note: NCBI has removed their metadata files. We are looking for another source of metadata information, but until then we can only use metadata for genomes from before June, 2012.");  
+
+    #get NCBI_orginfo.txt
+    my $ncbi_orginfo=$localdir."NCBI_orginfo.txt";
+    my $ncbi_orginfo_remote="NCBI_orginfo.txt";
+    $logger->info("Downloading file: $ncbi_orginfo from Dropbox at: $public_dropbox/$ncbi_orginfo_remote");  
+    runwget($wget_parameters."-O $ncbi_orginfo",$public_dropbox,$ncbi_orginfo_remote);
+
+    #get NCBI_completegenomes.txt
+    my $ncbi_complete=$localdir."NCBI_completegenomes.txt";
+    my $ncbi_complete_remote="NCBI_completegenomes.txt";
+    $logger->info("Downloading file: $ncbi_complete from Dropbox at: $public_dropbox/$ncbi_complete_remote");  
+    runwget($wget_parameters."-O $ncbi_complete",$public_dropbox,$ncbi_complete_remote);
+
+}
+
 sub get_genomeprojfiles {
     my ($localdir) = @_;
 
-    #Note: Currently grabbing data from ftp://ftp.ncbi.nih.gov/genomes/genomeprj/
+    #Note1: Currently grabbing data from ftp://ftp.ncbi.nih.gov/genomes/genomeprj/
     #Note2: We used to grab it from http://www.ncbi.nih.gov/genomes/lproks.cgi but NCBI shut this page down. (http://www.ncbi.nlm.nih.gov/About/news/17Nov2011.html)
-    #Note2: Supposedly these are going to be phased out and replaced by: ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/prokaryotes.txt
+    #Note3: Supposedly these are going to be phased out and replaced by: ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/prokaryotes.txt
     #However, this new file is very limited (does not contain any organism information), and is using the new BioProject Accession (PRJNAXXXX) which is not being well supported by NCBI yet (i.e older genome id is still in directory name and all genbank records).
- 
+    #Note4: As of Nov. 15,2012 the metadata files are not available from NCBI ftp site. As temporary solution I have obtained the most recent metadata as of June 2012 and I am hosting these files via Dropbox. Therefore, metadata will only exist for genomes deposited before this date.
+    
     my $ncbi_org_dir='ftp://ftp.ncbi.nih.gov/genomes/genomeprj';
     my $wget_parameters="-a $logfile --passive-ftp ";
    
