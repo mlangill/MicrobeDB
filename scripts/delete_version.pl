@@ -63,24 +63,34 @@ if($all_unused){
     exit;
 }
 
+my %possible_version_ids;
 unless(defined($version_id)){
     my $so = new MicrobeDB::Search();
     my @vo = $so->table_search('version');
 
     my $str = join("\t",'Version ID','Download Directory', 'Used By');
     print "\n". $str,"\n";
+
     foreach(@vo){
 	my $used_by = $_->{used_by} ||'';
+	$possible_version_ids{$_->{version_id}}=1;
 	my $str = join("\t",$_->{version_id},$_->{dl_directory},$used_by);
 	print $str,"\n";
     }
-    print "\nPlease enter the Version ID that you would like deleted:\n";
+    print "\nPlease enter the Version ID that you would like deleted (separate multiple versions with comma):\n";
     $version_id = <STDIN>;
     chomp($version_id);
+    pod2usage($0.': You must specify a valid version id.') if $version_id eq '';
+    
 }
 
-pod2usage($0.': You must specify a version id.') unless defined $version_id;
-       
+my @version_ids=split(/,/,$version_id);
+
+foreach(@version_ids){
+    unless(exists $possible_version_ids{$_}){
+	pod2usage($0.': You must specify a valid version id.');
+    }
+}
        
 
 my $confirm;
@@ -108,11 +118,13 @@ if ( $confirm eq 'y' ) {
     } else {
 	print "Deleting records in mysql. Flat files will remain untouched. Please wait.\n";
     }
+    foreach my $version_id (@version_ids){
 	my $vo = new MicrobeDB::Version( version_id=>$version_id );
 	my $notice = $vo->delete_version( $save_files, $force );
 	if ($notice) {
-		print "Version $version_id has been successfully removed.\n";
+	    print "Version $version_id has been successfully removed.\n";
 	}
+    }
 } else {
 	print "Version $version_id was not properly confirmed by user and was not deleted.\n";
 }
