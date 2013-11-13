@@ -228,7 +228,7 @@ sub NCBIftp_wget3 {
 	foreach my $genome_dir (@good_dir){
 	    $logger->info("Downloading genome: $genome_dir");
 	    foreach my $file_type (@file_types){
-		my $remotedir = $root_dir.$genome_dir.'/*contig.'.$file_type.'.tgz';	    
+		my $remotedir = $root_dir.$genome_dir.'/*scaffold.'.$file_type.'.tgz';
 		&runwget( $wget_parameters, $host, $remotedir );
 	    }
 	}
