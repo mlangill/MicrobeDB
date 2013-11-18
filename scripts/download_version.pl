@@ -193,7 +193,7 @@ sub NCBIftp_wget3 {
 	    #only download genomes matching users search criteria
 	    $logger->debug("Getting list of directories and files from NCBI.");
 	    my @file_list=get_ftp_file_list($host.'/genomes/Bacteria/');
-	    my @good_dir=grep{/^$search/i}@file_list;
+	    my @good_dir=grep{/$search/i}@file_list;
 	    $logger->info("Found ".scalar(@good_dir)." RefSeq genomes that matched the search: $search");
 	    foreach my $genome_dir (@good_dir){
 		$logger->info("Downloading genome: $genome_dir");
@@ -431,7 +431,7 @@ Directory where genome files will be stored. (MANDATORY)
 
 =item B<-s, --search <name of genome> >
 
-Only download genomes that "match" your search of choice. Search matches from beginning of genome name which is usually the Genus name of the organism. Therefore, "Escherichia" will download all genomes with that Genus or "Escherichia_coli" will download all E.coli strains. "coli" will not match anything. Search is NOT case-sensitive.  
+Only download genomes that "match" your search of choice. The search string must match part of the genome directory name, which includes usually the "genus_species_strain", in order for it to be downloaded. Therefore, "Escherichia" will download all genomes with that Genus or "Escherichia_coli" will download all E.coli strains. Search is NOT case-sensitive.  
 
 =item B<-i, --incomplete>
 
