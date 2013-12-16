@@ -249,6 +249,7 @@ sub runwget {
     my $stdout;
     while ( $status != 0 && $count < 5 ) {
     	my $wget_cmd = "wget $parameters $host/$remotedir";
+	$logger->debug($wget_cmd);
         $stdout=`$wget_cmd`;
 	$status=$? >> 8;
 	if($?){
