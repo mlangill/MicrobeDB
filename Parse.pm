@@ -153,6 +153,12 @@ sub parse_gbk {
 	
 	while ( my $seq = <$IN> ) {
 
+	    #check to make sure object has any actual sequence associated with it
+	    if(($seq->length())==0 || (not defined($seq->seq())) || not (length($seq->seq()) >0) ){
+		$logger->warn("$file contains a replicon with no sequence. Skipping this replicon.");
+		next;
+	    }
+
 	    #set stuff about the replicon
 	    my $rep= new MicrobeDB::Replicon();
 	    my $def = $seq->desc();
