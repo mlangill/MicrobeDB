@@ -436,6 +436,7 @@ sub load_file{
 	my $format;
 	if($format_suffix =~ /genbank/i || $format_suffix =~ /gbk/i){
 	    $format='genbank';
+	    $FH_IN=remove_contig_lines_from_gbk($FH_IN);
 	}elsif($format_suffix =~ /fasta/i|| $format_suffix =~ /fa/i || $format_suffix =~ /fna/i || $format_suffix =~ /faa/i || $format_suffix =~ /ffn/i){
 	    $format='fasta';
 	}elsif($format_suffix =~ /embl/i){
@@ -451,6 +452,22 @@ sub load_file{
     
     return $IN,$name,$file_suffix;
 	
+}
+
+#In June of 2013 NCBI started putting CONTIG lines in the genbank file directly before the replicon sequence (ORIGIN line). 
+#This causes the BioPerl genbank parser to fail to load these sequences properly and results in the $seq->seq() returning an empty string. 
+#This method takes in a filehandle pointing to a genbank file, removes the CONTIG line if it exists, and returns a "fake" filehandle contaning the clean genbank string. 
+sub remove_contig_lines_from_gbk{
+    my $FH=shift;
+    my $clean_gbk;
+    while(<$FH>){
+	unless(/^CONTIG/){
+	    $clean_gbk.=$_;
+	}
+    }
+    close($FH);
+    open(my $MEMORY, '<', \$clean_gbk) || die "Can't open memory file: $!\n";
+    return $MEMORY;
 }
 
 
