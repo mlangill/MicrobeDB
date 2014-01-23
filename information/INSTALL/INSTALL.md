@@ -38,7 +38,7 @@ Save the file.
 
 ####MAC OSX: Change the MySQL system setting 'max_allowed_packet'####
 
-1. Copy a config file into the proper location
+1. Copy a config file into the proper location (could be called **my-default.cnf**)
 
         sudo cp /usr/local/mysql/support-files/my-large.cnf /etc/my.cnf
 
@@ -55,11 +55,24 @@ Save the file.
 
                 max_allowed_packet = 64M
 
-3. Restart the MySQL server:
+* Also remove MySQL "strict" mode:
+    * From:
+
+	           sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+
+* To:
+
+               sql_mode=NO_ENGINE_SUBSTITUTION
+
+3. Delete the file at /usr/local/mysql/my.cnf if it exists:
+
+        sudo rm /usr/local/mysql/my.cnf
+
+4. Restart the MySQL server:
 
         sudo /Library/StartupItems/MySQLCOM/MySQLCOM restart
 
-4. Skip to "Setup MicrobeDB database"
+5. Skip to "Setup MicrobeDB database"
 
 ####Ubuntu: Install MySQL####
 * Follow directions here: https://help.ubuntu.com/11.10/serverguide/C/mysql.html
@@ -71,6 +84,15 @@ Save the file.
 * Find 'max_allowed_packet' and change the line to this:
 
          max_allowed_packet  = 64M
+
+* Remove MySQL "strict" mode:
+    * From:
+
+	           sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+
+* To:
+
+               sql_mode=NO_ENGINE_SUBSTITUTION
 
 * Restart the MySQL server 
   
