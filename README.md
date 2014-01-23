@@ -35,7 +35,7 @@ REQUIREMENTS
 
 Installing the MicrobeDB software
 =================================
-* Download MicrobeDB using a Git client or sinply by clicking the ["ZIP" link](https://github.com/mlangill/MicrobeDB/zipball/master) on the top left of the webpage.
+* Download MicrobeDB using a Git client or simply by clicking the ["Download ZIP"](https://github.com/mlangill/MicrobeDB/archive/master.zip) on the top left of the webpage.
 * For installation information see [MicrobeDB/information/INSTALL/INSTALL.md](https://github.com/mlangill/MicrobeDB/blob/master/information/INSTALL/INSTALL.md).
 
 Updating the MicrobeDB software

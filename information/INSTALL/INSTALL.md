@@ -36,7 +36,7 @@ Then add the following line to the end of the file:
 
 Save the file.
 
-####MAC OSX: Change the MySQL system setting 'max_allowed_packet'####
+####MAC OSX: Change the MySQL system settings####
 
 1. Copy a config file into the proper location (could be called **my-default.cnf**)
 
@@ -77,7 +77,7 @@ Save the file.
 ####Ubuntu: Install MySQL####
 * Follow directions here: https://help.ubuntu.com/11.10/serverguide/C/mysql.html
 
-####Ubuntu: Change the MySQL system setting 'max_allowed_packet'####
+####Ubuntu: Change the MySQL system settings####
 
 * Edit the MySQL configuration file 'my.cnf' usually located at /etc/mysql/my.cnf 
 
