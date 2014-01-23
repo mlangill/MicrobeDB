@@ -83,9 +83,14 @@ eval {
     #Parse the data and get the data structure
     my $parse =new MicrobeDB::Parse();
     my $gpo = $parse->parse_genome($dir);
-    
-    #pass the object to FullUpdate to do the database stuff
-    $up_obj->update_genomeproject($gpo);
+
+    #check the genome project to make sure it looks good before trying to load
+    if(length($gpo->replicons())){
+	#pass the object to FullUpdate to do the database stuff
+	$up_obj->update_genomeproject($gpo);
+    }else{
+	$logger->error("Genome doesn't contain any valid replicons, so not loading it.");
+    }
 };
 
 #if there was a parsing problem

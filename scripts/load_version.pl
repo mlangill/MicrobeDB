@@ -116,25 +116,21 @@ sub load_microbedb {
 		my $gpo = $parse->parse_genome($curr_dir);
 
 		#check the genome project to make sure it looks good before trying to load
-		if(($gpo->rep_index())==0){
-		    $logger->error("$curr_dir Genome doesn't contain any valid replicons, so not loading it.");
-		}else{
+		if(length($gpo->replicons())){
 		    #pass the object to FullUpdate to do the database stuff
 		    $up_obj->update_genomeproject($gpo);
+		}else{
+		    $logger->error("$curr_dir Genome doesn't contain any valid replicons, so not loading it.");
 		}
 	    };
-	    
 	    #if there was a parsing problem, give a warning and skip to the next genome project
 	    if ($@) {
 		$logger->error("Couldn't add the following to microbedb: $curr_dir ! Reason: $@");
-	      
 	    }
 	    $pm->finish;
-	    
 	}
 	$pm->wait_all_children;
 	return $up_obj->version_id();
-
 }
 
 
