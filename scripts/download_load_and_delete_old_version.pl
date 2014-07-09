@@ -116,11 +116,14 @@ $logger->info("Finished unpacking genome files");
 #Load all genomes into microbedb as a new version
 $logger->info("Parsing and loading each genome into NCBI");
 
-my $load_cmd = "$path/load_version.pl -l logger.conf -d $download_dir";
+my $load_cmd = "$path/load_version.pl -l logger.conf -d $download_dir ";
 if(defined($parallel)){
     $load_cmd .=" -p $cpu_count";
 }
+$load_cmd .= "2>&1";
+$logger->debug("Calling: $load_cmd");
 system($load_cmd);
+
 $logger->logdie("Error loading the new version: $!") if $?;
   
 $logger->info("Finished parsing and loading each genome into NCBI");

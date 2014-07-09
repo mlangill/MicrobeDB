@@ -28,6 +28,9 @@ use strict;
 use warnings;
 use Carp;
 
+use Bio::SeqIO; 
+use Bio::Perl;
+
 my @FIELDS;
 my @gene;
 my @_db_fields;
@@ -59,8 +62,6 @@ BEGIN {
   gene_name
   locus_tag
   gene_product
-  gene_seq
-  protein_seq
 );
 
 
@@ -86,7 +87,15 @@ version
 $_field_hash{gene} = \@gene;
 $_field_hash{version}  = \@version;
 
-@FIELDS = ( @_db_fields );
+my @_other = qw(
+  replicon
+  genomeproject
+  seqobj
+  gene_seq
+  protein_seq
+);
+
+@FIELDS = ( @_db_fields, @_other );
 
 }
 
@@ -101,7 +110,11 @@ sub new {
 
 	#Set each attribute that is given as an arguement
 	foreach ( keys(%arg) ) {
-		$self->$_( $arg{$_} );
+	    # Skip the type of gene_seq & protein_seq, we never store these
+	    next if($_ eq 'gene_seq');
+	    next if($_ eq 'protein_seq');
+
+	    $self->$_( $arg{$_} );
 	}
 
 	return $self;
@@ -123,18 +136,104 @@ sub field_names{
 
 #returns the genomeproject associated with this gene
 sub genomeproject{
-    my ($self) =@_;
-    my $so = new MicrobeDB::Search();
-    my ($genomeproject) = $so->object_search( new MicrobeDB::GenomeProject(gpv_id => $self->gpv_id()));
-    return $genomeproject;
+    my ($self, $new_genomeproject) =@_;
+
+    $self->{genomeproject} = $new_genomeproject if defined($new_genomeproject);
+
+    if(defined($self->{genomeproject})) {
+	return $self->{genomeproject};
+    } else {
+	my $so = new MicrobeDB::Search();
+	my ($genomeproject) = $so->object_search( new MicrobeDB::GenomeProject(gpv_id => $self->gpv_id()));
+	$self->{genomeproject} = $genomeproject;
+	return $genomeproject;
+    }
 }
 
 #returns the replicon associated with this gene
 sub replicon{
-    my ($self) =@_;
-    my $so = new MicrobeDB::Search();
-    my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
-    return $replicon;
+    my ($self, $new_replicon) =@_;
+
+    $self->{replicon} = $new_replicon if defined($new_replicon);
+
+    if(defined($self->{replicon})) {
+	return $self->{replicon};
+    } else {
+	my $so = new MicrobeDB::Search();
+	my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
+	$self->{replicon} = $replicon;
+	return $replicon;
+    }
+}
+
+# Override to pull the sequences from the flat
+# files ratherthan the database
+
+sub gene_seq() {
+    my ($self) = @_;
+
+    if(! defined($self->{seqobj})) {
+	my $replicon = $self->replicon();
+
+	my $filename = $replicon->get_filename('fna');
+
+	if(!defined($filename)) {
+	    $filename = $replicon->get_filename('gbk');
+	}
+
+	if(!defined($filename)) {
+	    croak "Error, fna or gbk file needed for retrieving sequences";
+	}
+
+	# Grab the fna file via bioperl
+	my $in = new Bio::SeqIO(-file => $filename);
+
+	my $seqobj = $in->next_seq();
+
+	return (($self->gene_strand() == -1) ?
+		reverse_complement_as_string($seqobj->subseq($self->gene_start(), $self->gene_end())) :
+		$seqobj->subseq($self->gene_start(), $self->gene_end()));
+
+	# Holding all the seqobj in memory was taking to much memory
+	# and crashing the scripts...
+        # Iterates through each genomic dna sequence in the file,
+	# returns a BioSeq object representing it
+#	$self->{seqobj} = $in->next_seq();
+
+    } else {
+
+	return (($self->gene_strand() == -1) ?
+		reverse_complement_as_string($self->{seqobj}->subseq($self->gene_start(), $self->gene_end())) :
+		$self->{seqobj}->subseq($self->gene_start(), $self->gene_end()));
+    }
+
+    return "ABCDF";
+}
+
+sub protein_seq() {
+    my ($self) = @_;
+
+    unless($self->gene_type() eq 'CDS') {
+	return '';
+    }
+
+    return Bio::Seq->new(-seq => $self->gene_seq(),
+		  -alphabet => 'dna')
+	->translate(-codontable_id => 11, -complete => 1)
+	->seq();
+
+}
+
+# If we're cycling through a large number of genomes, we need
+# to clean up after ourselves since there are circular references
+# between the Replicon and Gene objects
+
+sub cleanup() {
+    my ($self) = @_;
+
+    if($self->{replicon}) {
+	undef $self->{replicon};
+    }
 }
 
 sub table_names {    

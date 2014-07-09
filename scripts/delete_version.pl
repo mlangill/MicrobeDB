@@ -64,19 +64,20 @@ if($all_unused){
 }
 
 my %possible_version_ids;
+my $so = new MicrobeDB::Search();
+my @vo = $so->table_search('version');
+
+my $str = join("\t",'Version ID','Download Directory', 'Used By');
+print "\n". $str,"\n";
+
+foreach(@vo){
+    my $used_by = $_->{used_by} ||'';
+    $possible_version_ids{$_->{version_id}}=1;
+    my $str = join("\t",$_->{version_id},$_->{dl_directory},$used_by);
+    print $str,"\n";
+}
+
 unless(defined($version_id)){
-    my $so = new MicrobeDB::Search();
-    my @vo = $so->table_search('version');
-
-    my $str = join("\t",'Version ID','Download Directory', 'Used By');
-    print "\n". $str,"\n";
-
-    foreach(@vo){
-	my $used_by = $_->{used_by} ||'';
-	$possible_version_ids{$_->{version_id}}=1;
-	my $str = join("\t",$_->{version_id},$_->{dl_directory},$used_by);
-	print $str,"\n";
-    }
     print "\nPlease enter the Version ID that you would like deleted (separate multiple versions with comma):\n";
     $version_id = <STDIN>;
     chomp($version_id);
@@ -84,11 +85,12 @@ unless(defined($version_id)){
     
 }
 
-my @version_ids=split(/,/,$version_id);
+my @version_ids = split(/,/,$version_id);
+
 
 foreach(@version_ids){
     unless(exists $possible_version_ids{$_}){
-	pod2usage($0.': You must specify a valid version id.');
+	pod2usage($0.": You must specify a valid version id: $version_id");
     }
 }
        

@@ -66,7 +66,6 @@ BEGIN {
   rep_size
   rna_num
   file_types
-  rep_seq
 );
 
 
@@ -98,6 +97,7 @@ $_field_hash{version}  = \@version;
 my @_other = qw(
   genes
   gene_index
+  rep_seq
 );
 
 @FIELDS = ( @_db_fields, @_other );
@@ -147,6 +147,9 @@ sub new {
 	 				#overwrite the normal hash reference with the new Gene object reference
 					$arg{$attr}->[$i] = new MicrobeDB::Gene( %{ $arg{$attr}->[$i] } );
 				}
+
+				# Put a pointer to ourself in the gene object so it can find us
+				$arg{$attr}->[$i]->replicon($self);
 			}
 		}
 
@@ -202,6 +205,10 @@ sub add_gene {
 	} else {
 		$logger->logcroak("Only a Gene object or hash can be used to add a Gene");
 	}
+
+	# Put a pointer to ourself in the object
+	$gene_obj->replicon($self);
+
 	push( @{ $self->{genes} }, $gene_obj );
 }
 
@@ -241,6 +248,13 @@ sub _retrieve_genes{
     my ($self) =@_;
     my $so = new MicrobeDB::Search();
     my @genes = $so->object_search( new MicrobeDB::Gene(rpv_id => $self->rpv_id()));
+
+    # Tell each replicon who we are in case
+    # they ever need to find us again
+    foreach(@genes) {
+	$_->replicon($self);
+    }
+
     return \@genes;
 }
 
@@ -249,12 +263,18 @@ sub genes{
     my ($self,$new_genes) = @_;
 
     #Set the new value for the attribute if available (stored as a reference to an array)
-    $self->{genes} = $new_genes if defined($new_genes);
+    if(defined($new_genes)) {
+	foreach(@{$new_genes}) {
+	    $_->replicon($self);
+	}
+	$self->{genes} = $new_genes;
+    }
 
     if(defined($self->{genes})){
 	return $self->{genes};
     }else{
-        return $self->_retrieve_genes();
+	$self->{genes} = $self->_retrieve_genes();
+        return $self->{genes};
     }
 }
 
@@ -276,10 +296,48 @@ sub rep_seq{
 
 sub _retrieve_rep_seq{
     my ($self) =@_;
-    my $so = new MicrobeDB::Search(return_seqs=>1);
-    my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
+
+    my $filename = $self->get_filename('fna');
+
+    if(!defined($filename)) {
+	$filename = $self->get_filename('gbk');
+    }
+
+    if(!defined($filename)) {
+	croak "Error, fna or gbk file needed for retrieving sequences";
+    }
+
+    # Grab the fna file via bioperl
+    my $in = new Bio::SeqIO(-file => $filename);
+
+    my $seqobj = $in->next_seq();
+
+    return $seqobj->seq();
+
+#    my $so = new MicrobeDB::Search(return_seqs=>1);
+#    my ($replicon) = $so->object_search( new MicrobeDB::Replicon(rpv_id => $self->rpv_id()));
     
-    return $replicon->rep_seq();
+#    return $replicon->rep_seq();
+}
+
+# If we're cycling through a large number of genomes, we need
+# to clean up after ourselves since there are circular references
+# between the Replicon and Gene objects
+
+sub cleanup {
+    my ($self) = @_;
+    # If there are gene objects
+    if($self->genes()) {
+
+	# Go through and tell them to clean themselves
+	# up
+	foreach my $gene (@{$self->genes()}) {
+	    $gene->cleanup();
+	}
+    }
+
+    # Clean up my reference to genes objects
+    undef $self->{genes};
 }
 
 sub write_fasta {

@@ -199,12 +199,14 @@ sub NCBIftp_wget3 {
 		$logger->info("Downloading genome: $genome_dir");
 		foreach my $file_type (@file_types){
 		    my $remotedir = 'genomes/Bacteria/'.$genome_dir.'/*.'.$file_type;	    
+		    $logger->debug("Downloading " . $remotedir);
 		    &runwget( $wget_parameters, $host, $remotedir );
 		}
 	    }
 	}else{
 	    foreach my $file_type (@file_types){
 		my $remotedir  = 'genomes/Bacteria/all.'.$file_type.'.tar.gz';
+		$logger->debug("Downloading " . $remotedir);
 		&runwget( $wget_parameters, $host, $remotedir );
 	    }	
 	}
@@ -229,6 +231,7 @@ sub NCBIftp_wget3 {
 	    $logger->info("Downloading genome: $genome_dir");
 	    foreach my $file_type (@file_types){
 		my $remotedir = $root_dir.$genome_dir.'/*scaffold.'.$file_type.'.tgz';
+		$logger->debug("Downloading " . $remotedir);
 		&runwget( $wget_parameters, $host, $remotedir );
 	    }
 	}

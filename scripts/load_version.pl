@@ -32,6 +32,8 @@ use Getopt::Long;
 use LWP::Simple;
 use Log::Log4perl;
 use Pod::Usage;
+#use Devel::Peek 'Dump';
+#use Devel::Cycle;
 
 use Cwd qw(abs_path getcwd);
 use Parallel::ForkManager;
@@ -122,6 +124,7 @@ sub load_microbedb {
 		}else{
 		    $logger->error("$curr_dir Genome doesn't contain any valid replicons, so not loading it.");
 		}
+
 	    };
 	    #if there was a parsing problem, give a warning and skip to the next genome project
 	    if ($@) {

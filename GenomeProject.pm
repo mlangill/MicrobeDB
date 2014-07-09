@@ -438,6 +438,38 @@ sub table_names {
 	return $table_name;
 }
 
+# If we're cycling through a large number of genomes, we need
+# to clean up after ourselves since there are circular references
+# between the Replicon and Gene objects
+
+sub cleanup {
+    my ($self) = @_;
+
+    if($self->{replicons}) {
+	for my $replicon (@{ $self->{replicons}}) {
+	    $replicon->cleanup();
+	}
+    }
+
+    undef $self->{replicons};
+}
+
+# If we're cycling through a large number of genomes, we need
+# to clean up after ourselves since there are circular references
+# between the Replicon and Gene objects
+
+sub DESTROY {
+    my $self = shift;
+
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+
+    if($self->{replicons}) {
+	for my $replicon (@{ $self->{replicons}}) {
+	    $replicon->cleanup();
+	}
+    }
+}
+
 1;
 
 __END__
