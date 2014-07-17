@@ -190,7 +190,7 @@ sub gene_seq() {
 
 	my $seqobj = $in->next_seq();
 
-	return (($self->gene_strand() == -1) ?
+	return (($self->gene_strand() eq '-1' || $self->gene_strand() eq '-') ?
 		reverse_complement_as_string($seqobj->subseq($self->gene_start(), $self->gene_end())) :
 		$seqobj->subseq($self->gene_start(), $self->gene_end()));
 
@@ -202,7 +202,7 @@ sub gene_seq() {
 
     } else {
 
-	return (($self->gene_strand() == -1) ?
+	return (($self->gene_strand() eq '-1' || $self->gene_strand() eq '-') ?
 		reverse_complement_as_string($self->{seqobj}->subseq($self->gene_start(), $self->gene_end())) :
 		$self->{seqobj}->subseq($self->gene_start(), $self->gene_end()));
     }
