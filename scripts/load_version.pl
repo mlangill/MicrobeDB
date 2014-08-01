@@ -53,9 +53,10 @@ use MicrobeDB::Parse;
 use XML::Simple;
 use LWP::Simple;
 
-my ($download_dir,$logger_cfg,$custom,$help,$parallel);
+my ($download_dir,$logger_cfg,$custom,$help,$parallel, $use_bulk_load);
 my $res = GetOptions("directory=s" => \$download_dir,
 		     "parallel:i"=>\$parallel,
+		     "bulkload"=>\$use_bulk_load,
 		     "logger=s" => \$logger_cfg,
 		     "custom"=>\$custom,
 		     "help"=>\$help,
@@ -99,9 +100,9 @@ sub load_microbedb {
 	my $up_obj;
 	#custom genome
 	if($custom){
-	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir, version_id=>0 );
+	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir, version_id=>0, use_bulk_load => $use_bulk_load );
 	}else{
-	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir);
+	    $up_obj = new MicrobeDB::FullUpdate( dl_directory => $dl_dir, use_bulk_load => $use_bulk_load );
 	}
 	#do a directory scan
 	my @genome_dir = get_sub_dir($dl_dir);
@@ -116,14 +117,19 @@ sub load_microbedb {
 		#Parse the data and get the data structure
 		my $parse =new MicrobeDB::Parse();
 		my $gpo = $parse->parse_genome($curr_dir);
-
+		
 		#check the genome project to make sure it looks good before trying to load
 		if(length($gpo->replicons())){
 		    #pass the object to FullUpdate to do the database stuff
+		    $logger->debug("Updating genome project");
 		    $up_obj->update_genomeproject($gpo);
 		}else{
 		    $logger->error("$curr_dir Genome doesn't contain any valid replicons, so not loading it.");
 		}
+		
+		$gpo->cleanup();
+
+		undef $parse;
 
 	    };
 	    #if there was a parsing problem, give a warning and skip to the next genome project
@@ -132,6 +138,9 @@ sub load_microbedb {
 	    }
 	    $pm->finish;
 	}
+
+	$logger->info("Waiting for completion");
+
 	$pm->wait_all_children;
 	return $up_obj->version_id();
 }

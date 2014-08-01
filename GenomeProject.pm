@@ -463,11 +463,7 @@ sub DESTROY {
 
     return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
 
-    if($self->{replicons}) {
-	for my $replicon (@{ $self->{replicons}}) {
-	    $replicon->cleanup();
-	}
-    }
+    $self->cleanup();
 }
 
 1;

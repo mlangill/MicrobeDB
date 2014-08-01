@@ -298,7 +298,7 @@ sub get_deprecated_metafiles_from_dropbox{
     
     #http://dl.dropbox.com/u/5329340/NCBI_completegenomes.txt
     #http://dl.dropbox.com/u/5329340/NCBI_orginfo.txt
-    my $wget_parameters="-a $logfile --passive-ftp ";
+    my $wget_parameters="-a $logfile --passive-ftp --no-check-certificate ";
     my $public_dropbox='http://dl.dropbox.com/u/5329340';
 
     $logger->info("Note: NCBI has removed their metadata files. We are looking for another source of metadata information, but until then we can only use metadata for genomes from before June, 2012.");  
