@@ -235,10 +235,15 @@ sub parse_gbk {
 		    $feat->has_tag('locus_tag')
 		    ? $feat->get_tag_values('locus_tag')
 		    : '';
-		my ($protein_accnum) =
-		    $feat->has_tag('protein_id')
-		    ? $feat->get_tag_values('protein_id')
-		    : '';
+		my $protein_accnum = '';
+		if($feat->has_tag('protein_id')) {
+		    for my $accnum ($feat->get_tag_values('protein_id')) {
+			if($accnum =~ /^\w\w_.*/) {
+			    $protein_accnum = $accnum;
+			    last;
+			}
+		    }
+		}
 		
 		my @db_xref = $feat->has_tag('db_xref') ? $feat->get_tag_values('db_xref') : '';
 		
