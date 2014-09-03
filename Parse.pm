@@ -39,6 +39,7 @@ use MicrobeDB::Search;
 use Bio::SeqIO;
 use LWP::Simple;
 use File::Basename;
+#use Devel::Cycle;
 
 my $logger = Log::Log4perl->get_logger();
 
@@ -82,7 +83,8 @@ sub parse_genome{
     my @files = glob($dir.'*');
 
     #get genbank files
-    my @gbk_files = grep{/.gbk/i || /.genbank/i ||/.embl/i}@files;
+    my @gbk_files = grep{/.gbk$/i || /.genbank$/i ||/.embl$/i} @files;
+    print join "\n", @gbk_files;
 
     unless(@gbk_files){
 	$logger->error("No genbank files found in directory: $dir");
@@ -281,6 +283,10 @@ sub parse_gbk {
 	    
 	    $genome->add_replicon($rep);
 	}
+
+#	close $IN if $IN;
+	undef $IN;
+
 	return $genome;
 }
 sub parse_ncbicompgenomefile {
@@ -429,32 +435,34 @@ sub load_file{
     my $format_suffix;
     my $FH_IN;
     if($file_suffix eq '.gzip' || $file_suffix eq '.gz'){
-	    $logger->debug("File is gzipped.");
-	    open($FH_IN,"zcat $file|");
-	    ($name,$path,$format_suffix)=fileparse($name,qr/\.[^.]*/);
-	    $file_suffix=$format_suffix .$file_suffix;
-	}else{
-	    $format_suffix=$file_suffix;
-	    $logger->debug("File is not gzipped.");
-	    open($FH_IN,$file);
-	}
-	my $format;
-	if($format_suffix =~ /genbank/i || $format_suffix =~ /gbk/i){
-	    $format='genbank';
-	    $FH_IN=remove_contig_lines_from_gbk($FH_IN);
-	}elsif($format_suffix =~ /fasta/i|| $format_suffix =~ /fa/i || $format_suffix =~ /fna/i || $format_suffix =~ /faa/i || $format_suffix =~ /ffn/i){
-	    $format='fasta';
-	}elsif($format_suffix =~ /embl/i){
-	    $format='embl';
-	}else{
-	    $logger->fatal("Don't know how to handle file with suffix: $format_suffix !");
-	}
-	$logger->debug("Giving BioPerl file format: $format");
-	my $IN = Bio::SeqIO->newFh(
-	    -fh   => $FH_IN,
-	    -format => $format
-	    );
-    
+	$logger->debug("File is gzipped.");
+	open($FH_IN,"zcat $file|");
+	($name,$path,$format_suffix)=fileparse($name,qr/\.[^.]*/);
+	$file_suffix=$format_suffix .$file_suffix;
+    } else{
+	$format_suffix=$file_suffix;
+	$logger->debug("File is not gzipped.");
+	open($FH_IN,$file);
+    }
+    my $format;
+    if($format_suffix =~ /genbank/i || $format_suffix =~ /gbk/i){
+	$format='genbank';
+	$FH_IN=remove_contig_lines_from_gbk($FH_IN);
+    } elsif($format_suffix =~ /fasta/i|| $format_suffix =~ /fa/i || $format_suffix =~ /fna/i || $format_suffix =~ /faa/i || $format_suffix =~ /ffn/i){
+	$format='fasta';
+    }elsif($format_suffix =~ /embl/i){
+	$format='embl';
+    }else{
+	$logger->fatal("Don't know how to handle file with suffix: $format_suffix !");
+    }
+
+    $logger->debug("Giving BioPerl file format: $format");
+
+    my $IN = Bio::SeqIO->newFh(
+	-fh   => $FH_IN,
+	-format => $format
+	);
+
     return $IN,$name,$file_suffix;
 	
 }
@@ -573,6 +581,14 @@ sub get_file_type_list{
 	}
     }
     return join(" ",@ext);
+}
+
+sub DESTROY {
+    my $self = shift;
+
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+
+    undef $self->{gpo} if(defined($self->{gpo}));
 }
 
 

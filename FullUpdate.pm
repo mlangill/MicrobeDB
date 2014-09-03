@@ -26,7 +26,7 @@ use Log::Log4perl qw(get_logger :nowarn);
 use strict;
 use warnings;
 use Carp;
-
+use File::Temp qw/ tempfile/;
 
 use MicrobeDB::GenomeProject;
 use MicrobeDB::Replicon;
@@ -34,7 +34,7 @@ use MicrobeDB::Gene;
 use MicrobeDB::Search;
 
 my @FIELDS;
-BEGIN { @FIELDS = qw(dl_directory version_id dbh); }
+BEGIN { @FIELDS = qw(dl_directory version_id dbh use_bulk_load); }
 
 use fields  @FIELDS;
 
@@ -70,6 +70,10 @@ sub new {
 	    
 	    $logger->debug("No version_id specified, so going to create a new one.");
 	    $self->version_id( $self->_new_version() );
+	}
+
+	if(!defined($self->use_bulk_load)) {
+	    $self->use_bulk_load( 0 );
 	}
 	
 	return $self;
@@ -170,9 +174,17 @@ sub update_genomeproject {
 					#Set the replicon version id that was just created
 					$gene_obj->rpv_id($rpv_id);
 
-					#Insert into gene table
-					my $gene_id = $self->_insert_record( $gene_obj, 'gene' );
+					# Insert into gene table unless we've been told
+					# to do bulk loading
+					unless($self->use_bulk_load) {
+					    my $gene_id = $self->_insert_record( $gene_obj, 'gene' );
+					}
 
+				}
+
+				# Do bulk loading of genes if we've been told to
+				if(@{ $rep_obj->genes } && $self->use_bulk_load) {
+				    $self->_bulk_insert_record($rep_obj->genes, 'gene');
 				}
 			}
 		}
@@ -250,6 +262,44 @@ sub _insert_record {
 
 }
 
+sub _bulk_insert_record {
+    my ($self, $object_ary, $table_name ) = @_;
+
+    my $dbh = $self->dbh;
+    
+    my ($fh, $filename) = tempfile();
+
+    # Fetch the fields from the first record
+    my @fields = $object_ary->[0]->field_names($table_name);
+
+    # Make out list of fields for the load statement
+    #Need to add back ticks around each field name because certain fields (eg. order) will cause problems
+    my $fields_text = join ",", map { qq/`$_`/ } @fields;
+
+    # Go through each of the objects we've been given and 
+    # write them out to a temp file
+    foreach my $obj ( @{ $object_ary } ) {
+	my @values;
+	foreach (@fields) {
+	    push( @values, $obj->$_ );
+	}
+
+	my $line = join "\t", map { qq/"$_"/ } @values;
+	print {$fh} "$line\n";
+	
+    }
+
+    my $sql = "LOAD DATA LOCAL INFILE '$filename' REPLACE INTO TABLE $table_name COLUMNS TERMINATED BY '\t' ENCLOSED BY '\"' ( $fields_text )";
+
+    # Close the temp file we just wrote the bulk rows to
+    close $fh;
+
+    # Prepare the bulk load statement
+    my $sth = $dbh->prepare($sql);
+
+    # Execute the bulk load
+    $sth->execute();
+}
 
 1;
 
